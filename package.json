@@ -10,7 +10,7 @@
     "check": "node --test tests/api.test.mjs"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": "24.x"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",

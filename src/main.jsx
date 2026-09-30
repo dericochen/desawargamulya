@@ -4,7 +4,7 @@ import{api,Link,useRoute,Busy,Notice,Modal,openEmergency,openAssistant,openSearc
 import{SearchDialog}from'./portal-pages.jsx';
 import PublicPages,{Home}from'./pages.jsx';
 import{Assistant,EmergencySheet}from'./assistant.jsx';
-import Admin from'./admin.jsx';
+const Admin=React.lazy(()=>import('./admin.jsx'));
 import './style.css';
 
 // Menu structure; labels come from the CMS (site.nav) so admins can rename items.
@@ -45,7 +45,7 @@ function App(){
  useEffect(()=>{if(redirectLegacy())window.dispatchEvent(new PopStateEvent('popstate'));},[path]);
  const refresh=()=>Promise.all([api('/content'),api('/portal')]).then(([content,portal])=>{setData({...content,portal});setError('');}).catch(e=>setError(e.message));
  useEffect(()=>{refresh();},[]);useEffect(()=>{setMenu(false);},[path]);
- if(path==='/admin')return <Admin refreshPublic={refresh}/>;
+ if(path==='/admin')return <React.Suspense fallback={<Busy text="Memuat panel admin�"/>}><Admin refreshPublic={refresh}/></React.Suspense>;
  if(error)return <main className="container"><Notice error>{error}</Notice><button className="button" onClick={refresh}>Coba lagi</button></main>;
  if(!data)return <Busy/>;const{site:s}=data;const groups=menuGroups(s.nav);
  return <><a className="skip-link" href="#content">Lewati ke konten</a>

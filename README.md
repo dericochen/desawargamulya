@@ -1,4 +1,4 @@
-# Website Desa Marga Mulya â€” Portal Digital Desa
+# Website Desa Marga Mulya Ã¢â‚¬â€ Portal Digital Desa
 
 Portal Digital Desa Marga Mulya, Kecamatan Mauk, Kabupaten Tangerang, Banten, berbahasa Indonesia untuk EcoQuest: informasi desa, wisata pesisir, peta fasilitas, pengaduan bertiket, asisten desa dan chat admin, nomor darurat, cuaca, pembangunan, serta transparansi bantuan. Konten tersimpan di database; perubahan admin langsung digunakan halaman pengunjung.
 
@@ -9,7 +9,7 @@ Diterbitkan dan diperiksa pada 30 September 2026. Proyek Vercel: `sunib1/desa-ma
 
 ## Mencoba di komputer
 
-Gunakan Node.js 22.13 atau lebih baru (disarankan Node.js 24).
+Gunakan Node.js 24 (versi dikunci ke 24.x agar runtime Vercel tidak berubah selama kompetisi).
 
 ```sh
 npm ci
@@ -26,7 +26,7 @@ Buka http://localhost:4173 untuk pengunjung dan http://localhost:4173/admin untu
 | Beranda | Hero, akses cepat (Pengaduan, Tanya Desa, Wisata, Pembangunan, Peta Desa, Darurat), pengumuman, cuaca, profil singkat, potensi, wisata, pembangunan, data desa, galeri carousel, berita, peta, kontak |
 | Profil desa | Profil, sejarah, wilayah, visi-misi, statistik dan grafik |
 | Informasi (`/informasi`) | Tab Berita & pengumuman dan tab Agenda (kalender, pendaftaran peserta/lapak bazar) |
-| Galeri (`/galeri`) Â· Lapak desa (`/lapak`) | Galeri lengkap per kategori; katalog produk warga dengan moderasi |
+| Galeri (`/galeri`) Ã‚Â· Lapak desa (`/lapak`) | Galeri lengkap per kategori; katalog produk warga dengan moderasi |
 | Wisata (`/wisata`) | Kartu destinasi, detail (foto, alamat, jam, tiket, fasilitas, galeri, peta, kontak, petunjuk arah) |
 | Peta Desa (`/peta-desa`) | Peta Leaflet + OpenStreetMap: geser, zoom, layar penuh, filter kategori, popup + petunjuk arah, daftar lokasi |
 | Transparansi (`/transparansi`) | Tab Pembangunan (progres, anggaran, dokumentasi sebelum/proses/selesai, timeline) dan tab Bantuan (program, dokumentasi, penerima tersamar) |
@@ -37,19 +37,19 @@ Total **10 halaman publik**: Beranda, Profil, Informasi, Galeri, Lapak, Wisata, 
 
 Tombol **Darurat** (header, akses cepat, footer) membuka lembar nomor 112/110/119/113 dan kontak lokal dengan tautan `tel:`.
 
-## Portal Digital Desa â€” cara kerja
+## Portal Digital Desa Ã¢â‚¬â€ cara kerja
 
 - **Data dinamis.** Wisata, fasilitas, galeri, FAQ, menu chatbot, nomor darurat, pengaduan, pesan, pembangunan, bantuan, dokumentasi, dusun dan RT/RW tersimpan di database dan dikelola dari admin. Tabel baru dibuat otomatis (`CREATE TABLE IF NOT EXISTS`) tanpa menghapus data lama; definisinya ada di `server/portal-schema.mjs`.
-- **Pengaduan.** Nomor tiket `TIK-001`, `TIK-002`, â€¦ berasal dari penghitung database (tidak dipakai ulang). Halaman cek tiket hanya menampilkan kategori, dusun, status dan catatan petugas; nama, nomor, isi dan foto hanya untuk admin. Admin mengubah status BARU â†’ DIVERIFIKASI â†’ DIPROSES â†’ SELESAI/DITOLAK beserta catatan.
+- **Pengaduan.** Nomor tiket `TIK-001`, `TIK-002`, Ã¢â‚¬Â¦ berasal dari penghitung database (tidak dipakai ulang). Halaman cek tiket hanya menampilkan kategori, dusun, status dan catatan petugas; nama, nomor, isi dan foto hanya untuk admin. Admin mengubah status BARU Ã¢â€ â€™ DIVERIFIKASI Ã¢â€ â€™ DIPROSES Ã¢â€ â€™ SELESAI/DITOLAK beserta catatan.
 - **Asisten Desa.** Bot menu angka (bukan AI) yang dibaca dari tabel `chatbot_nodes`/`chatbot_options`. Pilihan dapat membuka menu lain, formulir pengaduan berkategori, cek tiket, FAQ, halaman website, nomor darurat, atau menghubungkan ke admin.
-- **Pesan Warga.** Warga yang dihubungkan ke admin mendapat kode rahasia di perangkatnya; admin membalas di inbox (status belum dibaca, selesai/buka kembali, kategori). Pembaruan memakai polling ringan tiap 5â€“6 detik karena stack ini tidak memiliki layanan realtime; tidak ada teknologi baru yang ditambahkan.
+- **Pesan Warga.** Warga yang dihubungkan ke admin mendapat kode rahasia di perangkatnya; admin membalas di inbox (status belum dibaca, selesai/buka kembali, kategori). Pembaruan memakai polling ringan tiap 5Ã¢â‚¬â€œ6 detik karena stack ini tidak memiliki layanan realtime; tidak ada teknologi baru yang ditambahkan.
 - **Peta dan cuaca.** Leaflet + OpenStreetMap dimuat terpisah hanya saat peta dibuka. Cuaca dari Open-Meteo (tanpa API key) berdasarkan koordinat desa, maksimal 3 hari, dengan pesan cadangan bila gagal.
 - **Penyimpanan foto.** Foto unggahan disimpan di database. Unggahan ditolak bila total foto melewati `MEDIA_LIMIT_MB` (bawaan 300 MB) agar database paket gratis tidak penuh; pemakaian tampil di Dashboard admin.
-- **Keamanan.** Semua rute `/api/admin/*` memakai sesi admin yang sama. Validasi server untuk semua input, foto hanya JPG/PNG/WebP â‰¤ 1,5 MB dengan pemeriksaan isi file, batas laju untuk pengaduan dan chat, foto pengaduan privat, foto destinasi/proyek nonaktif ikut tersembunyi, dan foto lama dihapus saat diganti atau datanya dihapus.
+- **Keamanan.** Semua rute `/api/admin/*` memakai sesi admin yang sama. Validasi server untuk semua input, foto hanya JPG/PNG/WebP Ã¢â€°Â¤ 1,5 MB dengan pemeriksaan isi file, batas laju untuk pengaduan dan chat, foto pengaduan privat, foto destinasi/proyek nonaktif ikut tersembunyi, dan foto lama dihapus saat diganti atau datanya dihapus.
 
-## Data desa (struktur dokumen EcoQuest Aâ€“M)
+## Data desa (struktur dokumen EcoQuest AÃ¢â‚¬â€œM)
 
-Tab **Data desa** di Profil menampilkan kelompok data sesuai dokumen [Data EcoQuest IIT Challenge 2026](https://www.canva.com/design/DAHUOBlDerM/XZha5NlhvEsz6u4cI7wcgQ/view): A. Geografi & penggunaan lahan, B. Pemerintahan, C. Kependudukan, mata pencaharian & pendidikan penduduk, E. Pendidikan, F. Kesehatan & lingkungan, G. Pertanian/perikanan/peternakan, H. Ekonomi, I. Infrastruktur jalan, J. Budaya, K. Wisata, L. Organisasi, M. UMKM. Semua nilai adalah data dummy dan dapat diubah di admin (**Statistik**): tambah/hapus kelompok dan baris, pilih tabel atau grafik batang. Bagian **D. Agama** sengaja tidak ditampilkan untuk mematuhi larangan konten SARA; fasilitas ibadah di peta memakai ikon netral ðŸ›.
+Tab **Data desa** di Profil menampilkan kelompok data sesuai dokumen [Data EcoQuest IIT Challenge 2026](https://www.canva.com/design/DAHUOBlDerM/XZha5NlhvEsz6u4cI7wcgQ/view): A. Geografi & penggunaan lahan, B. Pemerintahan, C. Kependudukan, mata pencaharian & pendidikan penduduk, E. Pendidikan, F. Kesehatan & lingkungan, G. Pertanian/perikanan/peternakan, H. Ekonomi, I. Infrastruktur jalan, J. Budaya, K. Wisata, L. Organisasi, M. UMKM. Semua nilai adalah data dummy dan dapat diubah di admin (**Statistik**): tambah/hapus kelompok dan baris, pilih tabel atau grafik batang. Bagian **D. Agama** sengaja tidak ditampilkan untuk mematuhi larangan konten SARA; fasilitas ibadah di peta memakai ikon netral Ã°Å¸â€ºÂ.
 
 Teks beranda yang berisi informasi desa (judul profil singkat, pengantar wisata/potensi/pembangunan/peta, lokasi cuaca, wilayah administratif di Kontak) juga dikelola dari **Pengaturan Website**.
 
@@ -57,7 +57,7 @@ Teks beranda yang berisi informasi desa (judul profil singkat, pengantar wisata/
 
 Koordinat desa dari tautan Google Maps yang diberikan (-6.0353563, 106.5260001). Lokasi 4 pantai dan 15 fasilitas (Kantor Desa, Kantor Kecamatan, Puskesmas, Klinik Melati, Apotek Syarah Farma, Polsek, Pos Damkar, SDN Margamulya, PAUD Al Fikri, Masjid Al Falah, Masjid Jami Baituttaqwa, Kelenteng Tjoe Soe Kong, ATM Mandiri, Pasar Mauk, SPBU 34.155.03) dicocokkan dengan listing Google Maps pada September 2026. Nomor lokal (Polsek, Damkar, Kantor Desa, JK Park) berasal dari listing tersebut dan perlu dikonfirmasi pemerintah desa; nomor Puskesmas belum ditemukan sehingga kontaknya dinonaktifkan sampai diisi admin. Harga tiket, jam buka, dan fasilitas wisata sengaja kosong ("Informasi belum tersedia").
 
-Situs resmi `margamulya-mauk.desa.id` tidak dapat diakses otomatis (proteksi Cloudflare), sehingga pembagian dusun dan RT/RW resmi belum diverifikasi. Seed hanya berisi Dusun Iâ€“IV tanpa RT/RW; lengkapi lewat menu **Wilayah / Dusun**. Proyek pembangunan dan program bantuan bertanda "(contoh)" adalah data demonstrasi. Website `margamulya.kobar.id` hanya dipakai sebagai referensi fitur.
+Situs resmi `margamulya-mauk.desa.id` tidak dapat diakses otomatis (proteksi Cloudflare), sehingga pembagian dusun dan RT/RW resmi belum diverifikasi. Seed hanya berisi Dusun IÃ¢â‚¬â€œIV tanpa RT/RW; lengkapi lewat menu **Wilayah / Dusun**. Proyek pembangunan dan program bantuan bertanda "(contoh)" adalah data demonstrasi. Website `margamulya.kobar.id` hanya dipakai sebagai referensi fitur.
 
 ## Alur Lapak Desa
 
@@ -83,23 +83,23 @@ Batas waktu pendaftaran dihitung menurut **zona waktu desa** (menu Kontak & jadw
 
 ## Data demonstrasi dan referensi
 
-Dokumen [Data EcoQuest IIT Challenge 2026](https://www.canva.com/design/DAHUOBlDerM/XZha5NlhvEsz6u4cI7wcgQ/view) memuat struktur data Aâ€“M, bukan nilai desa yang sudah terisi. Konten contoh menggunakan struktur geografis, kependudukan, ekonomi, kegiatan masyarakat, dan UMKM. Ketentuan lomba mengizinkan pemilihan data yang relevan dan mewajibkan data dummy mengikuti referensi.
+Dokumen [Data EcoQuest IIT Challenge 2026](https://www.canva.com/design/DAHUOBlDerM/XZha5NlhvEsz6u4cI7wcgQ/view) memuat struktur data AÃ¢â‚¬â€œM, bukan nilai desa yang sudah terisi. Konten contoh menggunakan struktur geografis, kependudukan, ekonomi, kegiatan masyarakat, dan UMKM. Ketentuan lomba mengizinkan pemilihan data yang relevan dan mewajibkan data dummy mengikuti referensi.
 
 Seluruh angka, visi-misi, nama usaha, dan agenda pada versi awal adalah contoh. Alamat, telepon, email, dan lokasi peta resmi sengaja belum diisi karena tidak tersedia dalam sumber. Admin dapat melengkapinya. Penanda demonstrasi sebaiknya tetap aktif sampai data resmi diperiksa.
 
-Referensi pola informasi: [Website Desa Punggurharjo](https://punggurharjo-rembang.desa.id/index.php/). Referensi keberadaan fitur promosi usaha pada platform desa: [Digital Desa](https://digitaldesa.id/artikel/desa-dalam-genggaman). Keunggulan proyek yang ditawarkan adalah alur kegiatanâ€“produk yang terhubung dan moderasi yang dapat diperagakan, bukan klaim bahwa kalender atau marketplace belum pernah ada.
+Referensi pola informasi: [Website Desa Punggurharjo](https://punggurharjo-rembang.desa.id/index.php/). Referensi keberadaan fitur promosi usaha pada platform desa: [Digital Desa](https://digitaldesa.id/artikel/desa-dalam-genggaman). Keunggulan proyek yang ditawarkan adalah alur kegiatanÃ¢â‚¬â€œproduk yang terhubung dan moderasi yang dapat diperagakan, bukan klaim bahwa kalender atau marketplace belum pernah ada.
 
 Foto bersumber dari Wikimedia Commons. Atribusi lengkap tersedia pada footer **Sumber & kredit foto** dan dapat dikelola admin. Foto diperkecil, dikonversi ke WebP, dan dipotong secara visual sesuai tata letak; salinan olahan mengikuti lisensi asal.
 
 | File | Pembuat dan sumber | Lisensi |
 |---|---|---|
-| hero.webp | [Thomas Fuhrmann â€” Rice terraces in Java](https://commons.wikimedia.org/wiki/File:Rice_terraces_in_Java_-_Indonesia.jpg) | CC BY-SA 4.0 |
-| vegetables.webp | [Midori â€” Indonesian vegetables](https://commons.wikimedia.org/wiki/File:Indonesian_vegetables.JPG) | CC BY-SA 3.0 |
-| rice.webp | [Sanjay Acharya â€” Unpolished rice](https://commons.wikimedia.org/wiki/File:Unpolished-rice.jpg) | CC BY-SA 3.0 |
-| basket.webp | [Abdulrohmatt â€” Woman weaving a bamboo basket](https://commons.wikimedia.org/wiki/File:Woman_weaving_a_bamboo_basket,_Tasikmalaya.jpg) | CC BY-SA 4.0 |
-| weave.webp | [Dinata Juan â€” Sidetapa anyam bambu](https://commons.wikimedia.org/wiki/File:20180707_Sidetapa_anyam_bambu.jpg) | CC BY-SA 4.0 |
+| hero.webp | [Thomas Fuhrmann Ã¢â‚¬â€ Rice terraces in Java](https://commons.wikimedia.org/wiki/File:Rice_terraces_in_Java_-_Indonesia.jpg) | CC BY-SA 4.0 |
+| vegetables.webp | [Midori Ã¢â‚¬â€ Indonesian vegetables](https://commons.wikimedia.org/wiki/File:Indonesian_vegetables.JPG) | CC BY-SA 3.0 |
+| rice.webp | [Sanjay Acharya Ã¢â‚¬â€ Unpolished rice](https://commons.wikimedia.org/wiki/File:Unpolished-rice.jpg) | CC BY-SA 3.0 |
+| basket.webp | [Abdulrohmatt Ã¢â‚¬â€ Woman weaving a bamboo basket](https://commons.wikimedia.org/wiki/File:Woman_weaving_a_bamboo_basket,_Tasikmalaya.jpg) | CC BY-SA 4.0 |
+| weave.webp | [Dinata Juan Ã¢â‚¬â€ Sidetapa anyam bambu](https://commons.wikimedia.org/wiki/File:20180707_Sidetapa_anyam_bambu.jpg) | CC BY-SA 4.0 |
 
-Foto utama beranda adalah perahu nelayan di Pantai Tanjung Pasir, Tangerang (Banacama, Wikimedia Commons, CC BY-SA 4.0) sebagai ilustrasi pesisir. Semua foto kecuali Kantor Desa Marga Mulya dan Kantor Kecamatan Mauk (foto asli oleh Enperfectify World, Wikimedia Commons, CC BY-SA 4.0, 28 Agustus 2024) merupakan ilustrasi, bukan dokumentasi desa. Wisata, pembangunan, dan bantuan sengaja memakai placeholder sampai admin mengunggah foto asli; tidak ada gambar buatan AI. Tipografi menggunakan DM Sans dan Lora dari Google Fonts, dengan fallback lokal. Ikon memakai Lucide. Peta memakai Leaflet 1.9.4 dan data Â© kontributor OpenStreetMap. Lisensi paket terdapat dalam distribusi dependensi masing-masing.
+Foto utama beranda adalah perahu nelayan di Pantai Tanjung Pasir, Tangerang (Banacama, Wikimedia Commons, CC BY-SA 4.0) sebagai ilustrasi pesisir. Semua foto kecuali Kantor Desa Marga Mulya dan Kantor Kecamatan Mauk (foto asli oleh Enperfectify World, Wikimedia Commons, CC BY-SA 4.0, 28 Agustus 2024) merupakan ilustrasi, bukan dokumentasi desa. Wisata, pembangunan, dan bantuan sengaja memakai placeholder sampai admin mengunggah foto asli; tidak ada gambar buatan AI. Tipografi menggunakan DM Sans dan Lora dari Google Fonts, dengan fallback lokal. Ikon memakai Lucide. Peta memakai Leaflet 1.9.4 dan data Ã‚Â© kontributor OpenStreetMap. Lisensi paket terdapat dalam distribusi dependensi masing-masing.
 
 ## Penerbitan ke Vercel
 
@@ -126,11 +126,11 @@ npm run check
 npm run build
 ```
 
-Uji integrasi (27 tes) memakai database sementara dalam `.test-data/` yang dihapus otomatis setelah selesai. Selain alur lama (akses admin, cookie sesi, penolakan lintas situs, moderasi lapak, pendaftaran kegiatan), tes portal mencakup: data awal portal, penolakan akses admin tanpa login, CRUD wisata + galeri + marker, foto privat saat nonaktif dan pembersihan media, perubahan FAQ/nomor darurat tampil publik, urutan, RT/RW per dusun, validasi chatbot, tiket berurutan TIK-001/TIK-002, privasi cek tiket, perubahan status + catatan, chat wargaâ€“admin (belum dibaca, balasan, isolasi antarwarga, buka kembali), penerima bantuan tersamar + paginasi + impor, dokumentasi pembangunan, dan urutan galeri.
+Uji integrasi (27 tes) memakai database sementara dalam `.test-data/` yang dihapus otomatis setelah selesai. Selain alur lama (akses admin, cookie sesi, penolakan lintas situs, moderasi lapak, pendaftaran kegiatan), tes portal mencakup: data awal portal, penolakan akses admin tanpa login, CRUD wisata + galeri + marker, foto privat saat nonaktif dan pembersihan media, perubahan FAQ/nomor darurat tampil publik, urutan, RT/RW per dusun, validasi chatbot, tiket berurutan TIK-001/TIK-002, privasi cek tiket, perubahan status + catatan, chat wargaÃ¢â‚¬â€œadmin (belum dibaca, balasan, isolasi antarwarga, buka kembali), penerima bantuan tersamar + paginasi + impor, dokumentasi pembangunan, dan urutan galeri.
 
-Pemeriksaan browser (Chrome headless, build produksi, database sementara) pada 1440, 768, 390, dan 320 piksel: tanpa error konsol, tanpa gambar rusak, tanpa overflow horizontal; 19 marker peta, detail wisata/pembangunan/bantuan, lembar darurat, alur bot â†’ hubungi admin â†’ chat, formulir pengaduan, serta dashboard, inbox, pengaduan, chatbot, dan editor wisata di admin. Ini bukan audit aksesibilitas formal.
+Pemeriksaan browser (Chrome headless, build produksi, database sementara) pada 1440, 768, 390, dan 320 piksel: tanpa error konsol, tanpa gambar rusak, tanpa overflow horizontal; 19 marker peta, detail wisata/pembangunan/bantuan, lembar darurat, alur bot Ã¢â€ â€™ hubungi admin Ã¢â€ â€™ chat, formulir pengaduan, serta dashboard, inbox, pengaduan, chatbot, dan editor wisata di admin. Ini bukan audit aksesibilitas formal.
 
-Menu admin: Dashboard Â· Konten (Berita & pengumuman, Galeri, Agenda, Pendaftaran, Lapak) Â· Desa (Profil, Wilayah/Dusun, Statistik) Â· Layanan (Pengaduan, FAQ, Chatbot, Pesan Warga) Â· Potensi (Wisata, Fasilitas Umum) Â· Pemerintahan (Pembangunan, Bantuan Sosial â€” program, penerima, dokumentasi) Â· Lainnya (Nomor Darurat, Pengaturan Website, Akun).
+Menu admin: Dashboard Ã‚Â· Konten (Berita & pengumuman, Galeri, Agenda, Pendaftaran, Lapak) Ã‚Â· Desa (Profil, Wilayah/Dusun, Statistik) Ã‚Â· Layanan (Pengaduan, FAQ, Chatbot, Pesan Warga) Ã‚Â· Potensi (Wisata, Fasilitas Umum) Ã‚Â· Pemerintahan (Pembangunan, Bantuan Sosial Ã¢â‚¬â€ program, penerima, dokumentasi) Ã‚Â· Lainnya (Nomor Darurat, Pengaturan Website, Akun).
 
 Pemeriksaan produksi Vercel berhasil: akses publik tanpa login Vercel, koneksi database, login admin dengan cookie Secure, baca CMS, pembuatan/perubahan/persistensi draf, draf tidak bocor ke publik, logout, pengajuan lapak, foto pending privat, pelacakan status, persetujuan, dan foto/produk tampil setelah terbit. Rekaman uji sementara telah dihapus. Fitur pendaftaran kegiatan dan perbaikan zona waktu ditambahkan setelah pemeriksaan tersebut; periksa ulang di produksi setelah deployment berikutnya.
 
@@ -142,4 +142,4 @@ Pemeriksaan produksi Vercel berhasil: akses publik tanpa login Vercel, koneksi d
 - Agenda dan lapak relevan dengan kegiatan masyarakat dan UMKM pada struktur data panitia.
 - Tautan produksi Vercel tetap harus diverifikasi aktif selama lomba.
 
-Urutan demo singkat: buka profil/data â†’ klik tanggal agenda â†’ daftar sebagai peserta atau lapak bazar â†’ buka produk yang terkait kegiatan â†’ ajukan produk warga â†’ masuk admin, setujui pendaftaran dan produk â†’ kembali ke agenda/lapak untuk melihat kuota dan produk tampil. Siapkan satu pengajuan contoh sebelum presentasi agar waktu lima menit cukup. Berkas presentasi dan pengiriman formulir lomba tidak termasuk implementasi website ini.
+Urutan demo singkat: buka profil/data Ã¢â€ â€™ klik tanggal agenda Ã¢â€ â€™ daftar sebagai peserta atau lapak bazar Ã¢â€ â€™ buka produk yang terkait kegiatan Ã¢â€ â€™ ajukan produk warga Ã¢â€ â€™ masuk admin, setujui pendaftaran dan produk Ã¢â€ â€™ kembali ke agenda/lapak untuk melihat kuota dan produk tampil. Siapkan satu pengajuan contoh sebelum presentasi agar waktu lima menit cukup. Berkas presentasi dan pengiriman formulir lomba tidak termasuk implementasi website ini.

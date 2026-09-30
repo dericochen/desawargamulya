@@ -47,7 +47,7 @@ function TourismDetail({place:t,onClose}){
 export function Tourism({data}){
   const list=data.portal.tourism,[selected,select]=useDetail(list,'slug');
   return <><PageIntro {...data.site.pages.wisata}>{data.site.pages.wisata.intro}</PageIntro>
-    {list.length?<div className="tourism-grid">{list.map(t=><TourismCard key={t.id} place={t} onDetail={select}/>)}</div>:<Empty title="Belum ada destinasi" text="Destinasi wisata akan tampil setelah ditambahkan pengelola."/>}
+    <h2 className="sr-only">Daftar destinasi wisata</h2>{list.length?<div className="tourism-grid">{list.map(t=><TourismCard key={t.id} place={t} onDetail={select}/>)}</div>:<Empty title="Belum ada destinasi" text="Destinasi wisata akan tampil setelah ditambahkan pengelola."/>}
     <div className="subtle-note"><ShieldCheck size={18}/><p>Harga tiket, jam buka, dan fasilitas hanya ditampilkan jika sudah dikonfirmasi. Foto yang belum tersedia sengaja tidak diganti gambar buatan.</p></div>
     {selected&&<TourismDetail place={selected} onClose={()=>select(null)}/>}</>;
 }
