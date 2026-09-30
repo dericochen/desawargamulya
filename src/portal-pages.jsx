@@ -1,7 +1,7 @@
 // Public Portal Desa pages: tourism, village map, development projects, social aid and global search.
 import React,{useEffect,useMemo,useState} from 'react';
 import {MapPin,Navigation,Phone,Clock,Ticket,ListChecks,Images,Search,Map as MapIcon,CalendarDays,Wallet,Landmark,HardHat,HeartHandshake,CircleHelp,Newspaper,Building2,ShieldCheck,ChevronLeft,ChevronRight} from 'lucide-react';
-import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs} from './lib.jsx';
+import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs,Slides,PhotoCount,imagesOf} from './lib.jsx';
 import {mapFilters,facilityCategories} from '../server/portal-schema.mjs';
 
 const categoryLabel=Object.fromEntries(facilityCategories.map(([k,l,e])=>[k,e+' '+l]));
@@ -16,7 +16,7 @@ const Fact=({icon:Icon,label,children})=><div className="fact"><Icon aria-hidden
 
 export function TourismCard({place:t,onDetail}){
   return <article className="tourism-card">
-    <Photo src={t.cover_image} alt={'Foto '+t.name} className="tourism-photo"/>
+    <div className="card-photo"><Photo src={t.cover_image} alt={'Foto '+t.name} className="tourism-photo"/><PhotoCount n={imagesOf(t,'cover_image').length+t.gallery.reduce((n,g)=>n+imagesOf(g,'image_url').length,0)}/></div>
     <div className="tourism-body"><span className="tag">{t.category||'Wisata'}</span><h3>{t.name}</h3>
       <p className="tourism-address"><MapPin size={16} aria-hidden="true"/>{t.address}</p>
       {t.short_description&&<p className="tourism-summary">{t.short_description}</p>}
@@ -25,10 +25,10 @@ export function TourismCard({place:t,onDetail}){
   </article>;
 }
 function TourismDetail({place:t,onClose}){
-  const [photo,setPhoto]=useState(null);const photos=[...(t.cover_image?[{id:'cover',image_url:t.cover_image,caption:t.name}]:[]),...t.gallery];
+  // Cover photos first, then every gallery photo; all can be swiped in one slider.
+  const photos=[...imagesOf(t,'cover_image').map(src=>({src,caption:t.name})),...t.gallery.flatMap(g=>imagesOf(g,'image_url').map(src=>({src,caption:g.caption||t.name})))];
   return <Modal title={t.name} wide onClose={onClose}>
-    <Photo src={(photo||photos[0])?.image_url} alt={(photo||photos[0])?.caption||t.name} className="detail-cover tourism-detail-photo"/>
-    {photos.length>1&&<div className="thumb-row" aria-label="Galeri foto">{photos.map(p=><button key={p.id} aria-label={'Tampilkan foto '+(p.caption||t.name)} aria-pressed={(photo||photos[0]).id===p.id} onClick={()=>setPhoto(p)}><Picture src={p.image_url} alt=""/></button>)}</div>}
+    <Slides images={photos.map(p=>p.src)} captions={photos.map(p=>p.caption)} alt={t.name} className="detail-cover tourism-detail-photo"/>
     <div className="article-meta"><span className="tag">{t.category||'Wisata'}</span></div>
     <p className="prose-text">{t.description||t.short_description||'Deskripsi belum tersedia.'}</p>
     <dl className="fact-list">
@@ -70,7 +70,7 @@ export function MapPage({data}){
 export const projectStatusClass={Direncanakan:'pending',Berjalan:'revision',Selesai:'published',Ditunda:'rejected'};
 const budgetLabel=n=>n>0?money(n):'Belum diumumkan';
 export function ProjectCard({project:p,onDetail}){
-  return <article className="project-card"><Photo src={p.cover_image} alt={'Foto '+p.title} className="project-photo"/><div className="project-body">
+  return <article className="project-card"><div className="card-photo"><Photo src={p.cover_image} alt={'Foto '+p.title} className="project-photo"/><PhotoCount n={imagesOf(p,'cover_image').length}/></div><div className="project-body">
     <span className={'status '+projectStatusClass[p.status]}>{p.status}</span><h3>{p.title}</h3><Progress value={p.progress}/>
     <dl className="project-facts"><div><dt>Anggaran</dt><dd>{budgetLabel(p.budget)}</dd></div><div><dt>Sumber dana</dt><dd><Unknown>{p.funding_source}</Unknown></dd></div><div><dt>Tahun</dt><dd>{p.year}</dd></div><div><dt>Lokasi</dt><dd>{[p.area_name,p.location].filter(Boolean).join(' · ')}</dd></div></dl>
     <button className="button secondary full" onClick={()=>onDetail(p)}>Lihat Detail</button></div></article>;
@@ -78,14 +78,14 @@ export function ProjectCard({project:p,onDetail}){
 function ProjectDetail({project:p,onClose}){
   const phases=[['sebelum','Foto sebelum'],['proses','Foto proses'],['selesai','Foto selesai']];const photos=p.updates.filter(u=>u.image_url);
   return <Modal title={p.title} wide onClose={onClose}>
-    <Photo src={p.cover_image} alt={'Foto '+p.title} className="detail-cover"/>
+    <Slides images={imagesOf(p,'cover_image')} alt={p.title} className="detail-cover"/>
     <div className="article-meta"><span className={'status '+projectStatusClass[p.status]}>{p.status}</span><span>Tahun {p.year}</span></div>
     <Progress value={p.progress}/>
     {p.description&&<p className="prose-text">{p.description}</p>}
     <dl className="detail-table">{[['Lokasi',p.location],['Dusun',p.area_name],['RT / RW',p.rt||p.rw?`RT ${p.rt||'—'} / RW ${p.rw||'—'}`:''],['Tahun',p.year],['Sumber dana',p.funding_source],['Anggaran',budgetLabel(p.budget)],['Pelaksana',p.contractor],['Tanggal mulai',dateLabel(p.start_date)],['Target selesai',dateLabel(p.target_date)],['Status',p.status]].map(([k,v])=><div key={k}><dt>{k}</dt><dd><Unknown>{v}</Unknown></dd></div>)}</dl>
     <h3 className="detail-heading">Dokumentasi pembangunan</h3>
-    {photos.length?phases.map(([k,label])=>{const items=photos.filter(u=>u.phase===k);return items.length?<div key={k} className="doc-group"><h4>{label}</h4><div className="doc-grid">{items.map(u=><figure key={u.id}><Picture src={u.image_url} alt={u.title}/><figcaption>{u.title}{u.date&&' · '+dateLabel(u.date)}</figcaption></figure>)}</div></div>:null;}):<p className="small muted">Belum ada foto dokumentasi.</p>}
-    {photos.some(u=>!u.phase)&&<div className="doc-grid">{photos.filter(u=>!u.phase).map(u=><figure key={u.id}><Picture src={u.image_url} alt={u.title}/><figcaption>{u.title}</figcaption></figure>)}</div>}
+    {photos.length?phases.map(([k,label])=>{const items=photos.filter(u=>u.phase===k);return items.length?<div key={k} className="doc-group"><h4>{label}</h4><div className="doc-grid">{items.map(u=><figure key={u.id}><Slides images={imagesOf(u,'image_url')} alt={u.title} className="doc-slides"/><figcaption>{u.title}{u.date&&' · '+dateLabel(u.date)}</figcaption></figure>)}</div></div>:null;}):<p className="small muted">Belum ada foto dokumentasi.</p>}
+    {photos.some(u=>!u.phase)&&<div className="doc-grid">{photos.filter(u=>!u.phase).map(u=><figure key={u.id}><Slides images={imagesOf(u,'image_url')} alt={u.title} className="doc-slides"/><figcaption>{u.title}</figcaption></figure>)}</div>}
     <h3 className="detail-heading">Timeline progres</h3>
     {p.updates.length?<ol className="timeline">{p.updates.map(u=><li key={u.id} className="done"><span className="timeline-dot" aria-hidden="true"/><div><time>{dateLabel(u.date)}</time><strong>{u.title}{u.progress>0&&` · ${u.progress}%`}</strong>{u.note&&<p>{u.note}</p>}</div></li>)}</ol>:<p className="small muted">Belum ada catatan progres.</p>}
   </Modal>;
@@ -115,12 +115,13 @@ function Recipients({program,areas}){
 function AidDetail({program:p,areas,onClose}){
   const stages=[...new Set(p.documentation.map(d=>d.stage||'Dokumentasi'))];
   return <Modal title={p.name} wide onClose={onClose}>
+    {imagesOf(p,'cover_image').length>0&&<Slides images={imagesOf(p,'cover_image')} alt={p.name} className="detail-cover"/>}
     <div className="article-meta"><span className={'status '+projectStatusClass[{Persiapan:'Direncanakan',Penyaluran:'Berjalan',Selesai:'Selesai',Ditunda:'Ditunda'}[p.status]]}>{p.status}</span><span>Tahun {p.year}</span></div>
     {p.description&&<p className="prose-text">{p.description}</p>}
     <dl className="detail-table">{[['Nama program',p.name],['Tahun',p.year],['Sumber dana',p.funding_source],['Jumlah penerima',p.recipient_count?numberLabel(p.recipient_count)+' penerima':''],['Status',p.status]].map(([k,v])=><div key={k}><dt>{k}</dt><dd><Unknown>{v}</Unknown></dd></div>)}</dl>
     {Object.keys(p.distribution).length>0&&<div className="distribution">{Object.entries(p.distribution).map(([k,v])=><div key={k}><strong>{numberLabel(v)}</strong><span>{k}</span></div>)}</div>}
     <h3 className="detail-heading">Dokumentasi penyaluran</h3>
-    {p.documentation.length?stages.map(s=><div key={s} className="doc-group"><h4>{s}</h4><div className="doc-grid">{p.documentation.filter(d=>(d.stage||'Dokumentasi')===s).map(d=><figure key={d.id}><Picture src={d.image_url} alt={d.caption||s}/><figcaption>{d.caption}{d.date&&' · '+dateLabel(d.date)}</figcaption></figure>)}</div></div>):<p className="small muted">Belum ada dokumentasi penyaluran.</p>}
+    {p.documentation.length?stages.map(s=><div key={s} className="doc-group"><h4>{s}</h4><div className="doc-grid">{p.documentation.filter(d=>(d.stage||'Dokumentasi')===s).map(d=><figure key={d.id}><Slides images={imagesOf(d,'image_url')} alt={d.caption||s} className="doc-slides"/><figcaption>{d.caption}{d.date&&' · '+dateLabel(d.date)}</figcaption></figure>)}</div></div>):<p className="small muted">Belum ada dokumentasi penyaluran.</p>}
     {p.show_recipients?<Recipients program={p} areas={areas}/>:<p className="small muted">Daftar penerima program ini tidak dipublikasikan.</p>}
   </Modal>;
 }

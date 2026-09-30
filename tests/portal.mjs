@@ -114,6 +114,46 @@ export async function checkPortal(t,request){
     try{assert.equal((await request('/admin/portal/tourism_gallery',{method:'POST',admin:true,body:{tourism_id:'wisata-pasir-putih',image_url:photo}})).status,507,'uploads stop when storage quota is reached');}
     finally{delete process.env.MEDIA_LIMIT_MB;}
   });
+  await t.test('Up to 3 photos per image field; hero slides, logo and homepage sections are CMS-managed',async()=>{
+    // Portal table: cover + 2 extra photos; a 4th is rejected; extras become private when inactive and are pruned when removed.
+    assert.equal((await request('/admin/portal/tourism_places/wisata-hidden-gem',{method:'PUT',admin:true,body:{cover_image:photo,cover_image_more:[photo,photo,photo]}})).status,400);
+    const t3=await request('/admin/portal/tourism_places/wisata-hidden-gem',{method:'PUT',admin:true,body:{cover_image:photo,cover_image_more:[photo,photo]}});
+    assert.equal(t3.status,200);assert.equal(t3.data.cover_image_more.length,2);assert.ok(t3.data.cover_image_more.every(u=>u.startsWith('/api/media/')));
+    const pub=(await request('/portal')).data.tourism.find(x=>x.id==='wisata-hidden-gem');assert.equal(pub.cover_image_more.length,2);
+    assert.equal((await request(pub.cover_image_more[1].slice(4))).status,200);
+    const keep=t3.data.cover_image_more[0],drop=t3.data.cover_image_more[1];
+    assert.equal((await request('/admin/portal/tourism_places/wisata-hidden-gem',{method:'PUT',admin:true,body:{cover_image_more:[keep]}})).status,200);
+    assert.equal((await request(drop.slice(4),{admin:true})).status,404,'removed extra photo is deleted');
+    assert.equal((await request(keep.slice(4))).status,200);
+    // Records (article/gallery/product): images list, first one is the cover.
+    const art=await request('/admin/records',{method:'POST',admin:true,body:{kind:'article',status:'published',title:'Artikel tiga foto',body:'Isi',date:'2026-09-30',images:[photo,photo,photo]}});
+    assert.equal(art.status,201);assert.equal(art.data.images.length,3);assert.equal(art.data.image,art.data.images[0]);
+    assert.equal((await request('/admin/records',{method:'POST',admin:true,body:{kind:'gallery',status:'published',title:'Galeri empat',category:'UMKM',images:[photo,photo,photo,photo]}})).status,400);
+    const upd=await request('/admin/records/'+art.data.id,{method:'PUT',admin:true,body:{...art.data,images:[art.data.images[2]]}});assert.equal(upd.status,200);
+    assert.equal((await request(art.data.images[0].slice(4),{admin:true})).status,404);assert.equal(upd.data.image,art.data.images[2]);
+    await request('/admin/records/'+art.data.id,{method:'DELETE',admin:true});
+    const sub=await request('/submissions',{method:'POST',body:{title:'Produk dua foto',category:'Pangan',description:'Uji foto ganda',unit:'buah',seller:'Uji',area:'Dusun I',phone:'081234567890',price:1000,consent:true,images:[photo,photo]}});
+    assert.equal(sub.status,201);
+    assert.equal((await request('/submissions',{method:'POST',body:{title:'Produk tautan',category:'Pangan',description:'Uji',unit:'buah',seller:'Uji',area:'Dusun I',phone:'081234567890',price:1,consent:true,images:[photo,'https://tracker.example/a.png']}})).status,400);
+    // Complaints: up to 3 photos, admin-only.
+    const c=await request('/complaints',{method:'POST',body:{...citizen,images:[photo,photo,photo]}});assert.equal(c.status,201);
+    assert.equal((await request('/complaints',{method:'POST',body:{...citizen,images:[photo,photo,photo,photo]}})).status,400);
+    const row=(await request('/admin/complaints',{admin:true})).data.find(x=>x.ticket===c.data.ticket);assert.equal(row.image_more.length,2);
+    assert.equal((await request(row.image_more[0].slice(4))).status,404);
+    // Site: hero slides, logo, buttons, homepage sections and background.
+    assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{heroSlides:[]}})).status,400);
+    assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{heroButtons:[{label:'Luar',href:'https://evil.example'}]}})).status,400);
+    assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{backgroundStyle:'neon'}})).status,400);
+    const site=await request('/admin/site',{method:'PUT',admin:true,body:{heroSlides:[{image:'/images/pesisir-tangerang.jpg',caption:'Satu'},{image:photo,caption:'Dua'}],logo:photo,heroButtons:[{label:'Lihat peta',href:'/peta-desa'}],homeSections:[{key:'map',visible:true},{key:'news',visible:false},{key:'bogus',visible:true}],backgroundStyle:'anyaman'}});
+    assert.equal(site.status,200);
+    const s=(await request('/content')).data.site;
+    assert.equal(s.heroSlides.length,2);assert.match(s.heroSlides[1].image,/^\/api\/media\//);assert.equal((await request(s.heroSlides[1].image.slice(4))).status,200);
+    assert.match(s.logo,/^\/api\/media\//);assert.equal(s.heroButtons[0].href,'/peta-desa');assert.equal(s.backgroundStyle,'anyaman');
+    assert.equal(s.homeSections[0].key,'map');assert.equal(s.homeSections.find(x=>x.key==='news').visible,false);assert.equal(s.homeSections.length,12);assert.ok(!s.homeSections.some(x=>x.key==='bogus'));
+    const old=s.heroSlides[1].image;
+    assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{heroSlides:[{image:'/images/pesisir-tangerang.jpg',caption:'Satu'}],logo:''}})).status,200);
+    assert.equal((await request(old.slice(4),{admin:true})).status,404,'removed hero slide photo is deleted');
+  });
   await t.test('Project documentation and gallery ordering',async()=>{
     const u=await request('/admin/portal/project_updates',{method:'POST',admin:true,body:{project_id:'proyek-contoh-1',date:'2026-09-30',title:'Foto sesudah',phase:'selesai',image_url:photo}});assert.equal(u.status,201);
     assert.equal((await request(u.data.image_url.slice(4))).status,200);

@@ -1,7 +1,7 @@
 // Layanan warga: FAQ first, then complaint form (TIK-xxx ticket) and ticket tracking.
 import React,{useEffect,useState,useRef} from 'react';
 import {Megaphone,SearchCheck,MessageCircle,PhoneCall,CheckCircle,Clipboard,ChevronDown,ShieldCheck,ArrowLeft,Search} from 'lucide-react';
-import {Link,Field,ImageField,Notice,Empty,PageIntro,api,dateLabel,param,navigate,openAssistant,openEmergency} from './lib.jsx';
+import {Link,Field,MultiImageField,Notice,Empty,PageIntro,api,dateLabel,param,navigate,openAssistant,openEmergency} from './lib.jsx';
 import {complaintCategories,complaintStatuses} from '../server/portal-schema.mjs';
 
 export const complaintLabel=Object.fromEntries(complaintStatuses);
@@ -21,7 +21,7 @@ function Faq({faqs}){
 }
 
 function ComplaintForm({areas,initialCategory,onBack}){
-  const [f,setF]=useState({name:'',phone:'',village_area_id:'',unit:'',rt:'',rw:'',category:complaintCategories.includes(initialCategory)?initialCategory:'',title:'',body:'',location:'',image:'',consent:false,website:''});
+  const [f,setF]=useState({name:'',phone:'',village_area_id:'',unit:'',rt:'',rw:'',category:complaintCategories.includes(initialCategory)?initialCategory:'',title:'',body:'',location:'',images:[],consent:false,website:''});
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[receipt,setReceipt]=useState(null),[copied,setCopied]=useState(''),top=useRef();
   const ch=(k,v)=>setF(o=>({...o,[k]:v}));const area=areas.find(a=>a.id===f.village_area_id);
   useEffect(()=>{top.current?.scrollIntoView({block:'start'});},[receipt]);
@@ -38,7 +38,7 @@ function ComplaintForm({areas,initialCategory,onBack}){
     <Field label="Judul Pengaduan" required minLength={5} maxLength={150} placeholder="Contoh: Lampu jalan mati di depan masjid" value={f.title} onChange={e=>ch('title',e.target.value)}/>
     <Field label="Isi Pengaduan"><textarea required minLength={10} maxLength={3000} placeholder="Ceritakan apa yang terjadi dan sejak kapan." value={f.body} onChange={e=>ch('body',e.target.value)}/></Field>
     <Field label="Lokasi kejadian" required minLength={3} maxLength={300} placeholder="Nama jalan, patokan, atau kampung" value={f.location} onChange={e=>ch('location',e.target.value)}/>
-    <ImageField label="Foto (opsional)" value={f.image} onChange={v=>ch('image',v)}/>{f.image&&<button type="button" className="plain-link" onClick={()=>ch('image','')}>Hapus foto</button>}
+    <MultiImageField label="Foto kejadian (opsional, maksimal 3)" values={f.images} onChange={v=>ch('images',v)} help="Foto membantu petugas memahami lokasi dan masalah. JPG, PNG, atau WebP."/>
     <div className="honeypot" aria-hidden="true"><label>Website<input tabIndex={-1} autoComplete="off" value={f.website} onChange={e=>ch('website',e.target.value)}/></label></div>
     <label className="check-field consent-strong"><input type="checkbox" required checked={f.consent} onChange={e=>ch('consent',e.target.checked)}/><span>Saya menyatakan informasi yang saya berikan benar dan dapat dipertanggungjawabkan.</span></label>
     <Notice error>{error}</Notice><div className="form-actions"><button className="button" disabled={busy}>{busy?'Mengirim…':'Kirim pengaduan'}</button><button type="button" className="button secondary" onClick={onBack}>Batal</button></div>

@@ -2,8 +2,8 @@
 // complaint handling, citizen message inbox and the dashboard summary.
 import React,{useEffect,useMemo,useState} from 'react';
 import {Plus,Pencil,Trash2,ArrowUp,ArrowDown,Search,RefreshCw,Save,Send,Eye,EyeOff,Upload,MessageSquare,Megaphone,CheckCircle,ChevronLeft} from 'lucide-react';
-import {api,Field,ImageField,Modal,Notice,Empty,Busy,Picture,dateLabel,timeLabel,money,numberLabel} from './lib.jsx';
-import {tables,complaintStatuses,chatCategories,facilityCategories} from '../server/portal-schema.mjs';
+import {api,Field,ImageField,Modal,Notice,Empty,Busy,Picture,dateLabel,timeLabel,money,numberLabel,MultiImageField,imagesOf} from './lib.jsx';
+import {tables,complaintStatuses,chatCategories,facilityCategories,MAX_IMAGES} from '../server/portal-schema.mjs';
 import {complaintLabel,complaintClass} from './services.jsx';
 
 const opts=f=>f.options.map(o=>Array.isArray(o)?o:[o,o]);
@@ -31,7 +31,7 @@ export function RowForm({table,row,parent,onSaved,onCancel}){
         case 'bool':return <label key={k} className="check-field form-wide"><input type="checkbox" checked={!!f[k]} onChange={e=>ch(k,e.target.checked?1:0)}/><span>{fd.label}{fd.help&&<small className="muted"> — {fd.help}</small>}</span></label>;
         case 'enum':return <Field {...common}><select value={f[k]} onChange={e=>ch(k,e.target.value)}>{opts(fd).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></Field>;
         case 'ref':{const list=(refs[fd.table]||[]).filter(r=>!(fd.table===table&&r.id===row?.id));return <Field {...common}><select required={fd.required} value={f[k]||''} onChange={e=>ch(k,e.target.value||null)}><option value="">{fd.required?'Pilih…':'Tidak ada'}</option>{list.map(r=><option key={r.id} value={r.id}>{refName(r)}</option>)}</select></Field>;}
-        case 'image':return <div key={k} className={wide}><ImageField label={fd.label+(fd.required?' (wajib)':'')} value={f[k]} onChange={v=>ch(k,v)}/>{f[k]&&!fd.required&&<button type="button" className="plain-link danger-text" onClick={()=>ch(k,'')}>Hapus foto</button>}</div>;
+        case 'image':return <div key={k} className={wide}><MultiImageField label={fd.label+' (maksimal '+MAX_IMAGES+')'} required={fd.required} max={MAX_IMAGES} values={[f[k],...(f[k+'_more']||[])]} onChange={v=>{ch(k,v[0]||'');ch(k+'_more',v.slice(1));}}/></div>;
         case 'int':case 'bigint':case 'num':return <Field {...common} type="number" step={fd.step||1} min={fd.min} max={fd.max} required={fd.required} value={f[k]??''} onChange={e=>ch(k,e.target.value)}/>;
         case 'date':return <Field {...common} type="date" required={fd.required} value={f[k]||''} onChange={e=>ch(k,e.target.value)}/>;
         default:return fd.long?<div key={k} className="form-wide"><Field label={fd.label} help={fd.help}><textarea required={fd.required} maxLength={fd.max} value={f[k]||''} onChange={e=>ch(k,e.target.value)}/></Field></div>
@@ -121,7 +121,7 @@ function ComplaintDetail({id,onClose,onSaved}){
   return <Modal title={c?c.ticket+' · '+c.title:'Pengaduan'} wide onClose={onClose}>{!c?<><Busy/><Notice error>{error}</Notice></>:<>
     <span className={'status '+complaintClass[c.status]}>{complaintLabel[c.status]}</span>
     <dl className="applicant-details">{[['Nama',c.name],['WhatsApp',c.phone],['Dusun / wilayah',c.area_name||'—'],['RT / RW',c.rt?`${c.rt} / ${c.rw||'—'}`:'—'],['Kategori',c.category],['Lokasi kejadian',c.location],['Isi pengaduan',c.body],['Dikirim',timeLabel(c.created_at)]].map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-    {c.image&&<Picture src={c.image} alt={'Foto pengaduan '+c.ticket} className="complaint-photo"/>}
+    {imagesOf(c).length>0&&<div className="complaint-photos">{imagesOf(c).map((src,i)=><a key={i} href={src} target="_blank" rel="noreferrer" aria-label={`Buka foto ${i+1} pengaduan ${c.ticket}`}><Picture src={src} alt={`Foto ${i+1} pengaduan ${c.ticket}`}/></a>)}</div>}
     <a className="button secondary" href={wa} target="_blank" rel="noreferrer"><MessageSquare/>Hubungi pelapor via WhatsApp</a>
     <h3 className="detail-heading">Riwayat</h3><ul className="update-list">{c.updates.map(u=><li key={u.id}><time>{timeLabel(u.created_at)}</time><span className={'status '+complaintClass[u.status]}>{complaintLabel[u.status]}</span>{u.note&&<p>{u.note}</p>}</li>)}</ul>
     <form className="publish-box" onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');setMsg('');try{await api('/admin/complaints/'+c.id,{method:'PUT',body:{status,note,updated_at:c.updated_at}});setNote('');await load();await onSaved();setMsg('Status tersimpan. Warga dapat melihatnya melalui Cek Pengaduan.');}catch(x){setError(x.message);}finally{setBusy(false);}}}>

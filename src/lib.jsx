@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState,useId} from 'react';
-import {X,ImageOff,LoaderCircle} from 'lucide-react';
+import {X,ImageOff,LoaderCircle,ChevronLeft,ChevronRight,ImagePlus,Trash2,Images} from 'lucide-react';
 export async function api(path,options={}){
   const response=await fetch('/api'+path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...options,body:options.body?JSON.stringify(options.body):undefined});
   const value=await response.json();if(!response.ok)throw new Error(value.error||'Permintaan gagal.');return value;
@@ -24,6 +24,38 @@ export async function fileImage(file){
   const bitmap=await createImageBitmap(file),canvas=document.createElement('canvas');const scale=Math.min(1,1300/Math.max(bitmap.width,bitmap.height));canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();return canvas.toDataURL('image/webp',.8);
 }
 export function ImageField({value,onChange,label='Foto',credit,onCredit}){const[err,setErr]=useState('');const inputId=useId();return <div className="field"><label className="image-upload-label" htmlFor={inputId}>{label}</label>{value&&<Picture src={value} className="upload-preview" alt="Pratinjau foto"/>}<input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={async e=>{try{setErr('');onChange(await fileImage(e.target.files[0]));}catch(x){setErr(x.message);}}}/><small>JPG, PNG, atau WebP. Gambar diperkecil otomatis untuk website.</small><Notice error>{err}</Notice>{onCredit&&<Field label="Sumber / keterangan foto" value={credit||''} onChange={e=>onCredit(e.target.value)}/>}</div>;}
+// All photos of an item: records use images[], portal rows use <field> + <field>_more. The first photo is the cover.
+export const imagesOf=(item,key='image')=>{if(!item)return [];if(key==='image'&&Array.isArray(item.images)&&item.images.length)return item.images.filter(Boolean);return [item[key],...(Array.isArray(item[key+'_more'])?item[key+'_more']:[])].filter(Boolean);};
+export const PhotoCount=({n})=>n>1?<span className="photo-count"><Images size={14} aria-hidden="true"/>{n} foto</span>:null;
+// Swipeable photo slider (scroll-snap) with arrows, dots and keyboard support. One photo renders as a plain image.
+export function Slides({images,alt='',className='',captions=[]}){
+  const list=(images||[]).filter(Boolean),ref=useRef(),[i,setI]=useState(0);
+  useEffect(()=>{if(ref.current)ref.current.scrollLeft=0;setI(0);},[list.join('|')]);
+  if(!list.length)return <Placeholder className={className}/>;
+  if(list.length===1)return <><Picture src={list[0]} alt={alt} className={className}/>{captions[0]&&<p className="credit">{captions[0]}</p>}</>;
+  const go=n=>{const el=ref.current;if(!el)return;const k=(n+list.length)%list.length;el.scrollTo({left:k*el.clientWidth,behavior:'smooth'});};
+  return <div className={'slides '+className} role="region" aria-roledescription="carousel" aria-label={'Foto '+alt}>
+    <div className="slides-track" ref={ref} tabIndex={0} aria-label="Geser untuk melihat foto lain" onScroll={e=>{const el=e.currentTarget;setI(Math.round(el.scrollLeft/Math.max(1,el.clientWidth)));}} onKeyDown={e=>{if(e.key==='ArrowRight'){e.preventDefault();go(i+1);}if(e.key==='ArrowLeft'){e.preventDefault();go(i-1);}}}>
+      {list.map((src,n)=><figure className="slide" key={n} aria-label={`Foto ${n+1} dari ${list.length}`}><Picture src={src} alt={`${alt} (foto ${n+1})`}/>{captions[n]&&<figcaption>{captions[n]}</figcaption>}</figure>)}
+    </div>
+    <button type="button" className="slides-nav prev" aria-label="Foto sebelumnya" onClick={()=>go(i-1)}><ChevronLeft/></button><button type="button" className="slides-nav next" aria-label="Foto berikutnya" onClick={()=>go(i+1)}><ChevronRight/></button>
+    <div className="slides-dots">{list.map((_,n)=><button type="button" key={n} aria-label={`Tampilkan foto ${n+1}`} aria-current={i===n?'true':undefined} onClick={()=>go(n)}/>)}</div>
+    <span className="slides-count" aria-live="polite">{i+1} / {list.length}</span>
+  </div>;
+}
+// Upload up to `max` photos; first photo is the cover. Photos can be reordered or removed before saving.
+export function MultiImageField({label='Foto',values,onChange,max=3,help,required=false}){
+  const [err,setErr]=useState(''),[busy,setBusy]=useState(false),id=useId();const list=(values||[]).filter(Boolean);
+  const add=async files=>{setErr('');setBusy(true);try{const room=max-list.length,picked=[...files].slice(0,room);if(files.length>room)setErr(`Maksimal ${max} foto. ${files.length-room} foto tidak ditambahkan.`);const out=[];for(const f of picked)out.push(await fileImage(f));onChange([...list,...out]);}catch(x){setErr(x.message);}finally{setBusy(false);}};
+  const move=(n,d)=>{const a=[...list];[a[n],a[n+d]]=[a[n+d],a[n]];onChange(a);};
+  return <div className="field multi-image" role="group" aria-labelledby={id}><span className="image-upload-label" id={id}>{label}{required&&' (wajib)'}</span>
+    {list.length>0&&<ul className="thumb-list">{list.map((src,n)=><li key={n}><Picture src={src} alt={`Pratinjau foto ${n+1}`}/>{n===0&&<span className="thumb-badge">Sampul</span>}<div className="thumb-actions"><button type="button" className="icon-button" aria-label={`Geser foto ${n+1} ke kiri`} disabled={n===0} onClick={()=>move(n,-1)}><ChevronLeft/></button><button type="button" className="icon-button" aria-label={`Geser foto ${n+1} ke kanan`} disabled={n===list.length-1} onClick={()=>move(n,1)}><ChevronRight/></button><button type="button" className="icon-button danger-text" aria-label={`Hapus foto ${n+1}`} onClick={()=>onChange(list.filter((_,m)=>m!==n))}><Trash2/></button></div></li>)}</ul>}
+    {list.length<max&&<label className="button secondary upload-button"><ImagePlus aria-hidden="true"/>{busy?'Memproses foto…':list.length?'Tambah foto':'Pilih foto'}<input className="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{add(e.target.files);e.target.value='';}}/></label>}
+    <small>{help||'JPG, PNG, atau WebP. Foto pertama menjadi sampul dan semua foto dapat digeser di halaman pengunjung.'} {list.length}/{max} foto.</small><Notice error>{err}</Notice>
+  </div>;
+}
+// Village logo from the CMS; falls back to the monogram.
+export function BrandMark({site}){return site?.logo?<img className="brand-logo" src={site.logo} alt={'Logo '+(site.identity||'desa')} width="48" height="48"/>:<span className="brand-mark" aria-hidden="true">M<span>m</span></span>;}
 export function PageIntro({eyebrow,title,children,action}){return <div className="page-intro"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{children&&<p>{children}</p>}</div>{action}</div>;}
 export function useRoute(){const[path,setPath]=useState(location.pathname+location.search);useEffect(()=>{let last=location.pathname;const f=()=>{setPath(location.pathname+location.search);if(location.pathname!==last)window.scrollTo(0,0);last=location.pathname;};window.addEventListener('popstate',f);return()=>window.removeEventListener('popstate',f);},[]);return path.split('?')[0];}
 export function Link({href,children,onClick,...props}){return <a href={href} {...props} onClick={e=>{if(onClick)onClick(e);if(!e.defaultPrevented&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.button===0&&href.startsWith('/')){e.preventDefault();history.pushState(null,'',href);window.dispatchEvent(new PopStateEvent('popstate'));}}}>{children}</a>;}

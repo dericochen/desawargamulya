@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,scryptSync,timingSafeEqual,createHash} from 'node:crypto';
 import {seedRecords,siteSeed} from './seed.mjs';
-import {portalDDL,SCHEMA_VERSION} from './portal-schema.mjs';
+import {portalDDL,SCHEMA_VERSION,extraImageColumns} from './portal-schema.mjs';
 import {portalSeed} from './portal-seed.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 let queryFn; let transactionFn; let ready; let closeFn=()=>{};
@@ -60,6 +60,11 @@ async function migratePortal(){
   const version=await queryFn("SELECT data FROM records WHERE id='__portal_schema'");
   if(!version.length||JSON.parse(version[0].data).version!==SCHEMA_VERSION){
     for(const statement of portalDDL())await queryFn(statement);
+    // Additive column migration; "already exists" errors mean the column was added earlier.
+    for(const [table,column] of extraImageColumns()){
+      try{await queryFn(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT '[]'`);}
+      catch(e){if(!/duplicate column|already exists/i.test(e.message))throw e;}
+    }
     await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_schema','system','private',?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at",[JSON.stringify({version:SCHEMA_VERSION}),now]);
   }
   if((await queryFn("SELECT id FROM records WHERE id='__portal_seeded'")).length)return;
@@ -72,11 +77,12 @@ async function migratePortal(){
 // Brings an existing site record up to date with new menu keys/pages and fills placeholders with verified location data.
 function upgradeSite(site){
   let changed=false;
+  if(!site.heroSlides&&site.heroImage){site.heroSlides=[{image:site.heroImage,caption:site.heroCaption||''}];if(site.heroImage==='/images/pesisir-tangerang.jpg')site.heroSlides.push(structuredClone(siteSeed.heroSlides[1]));changed=true;}
   // Any new top-level setting (e.g. dataSections, homepage texts) is filled from the seed; existing admin values are never overwritten.
   for(const [k,v] of Object.entries(siteSeed))if(site[k]===undefined){site[k]=structuredClone(v);changed=true;}
   for(const k of ['nav','labels','pages'])for(const [key,value] of Object.entries(siteSeed[k]))if(!(key in site[k])){site[k][key]=structuredClone(value);changed=true;}
   // Replace untouched demo defaults that no longer fit a coastal village.
-  if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;changed=true;}
+  if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;site.heroSlides=structuredClone(siteSeed.heroSlides);changed=true;}
   if(JSON.stringify(site.occupations)==='[{"label":"Pertanian","value":40},{"label":"Wiraswasta","value":27},{"label":"Karyawan","value":21},{"label":"Lainnya","value":12}]'){site.occupations=structuredClone(siteSeed.occupations);changed=true;}
   if(site.address==='Alamat kantor desa belum dikonfirmasi'){site.address=siteSeed.address;changed=true;}
   if(!site.mapUrl){site.mapUrl=siteSeed.mapUrl;changed=true;}

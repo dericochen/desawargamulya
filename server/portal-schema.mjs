@@ -1,6 +1,6 @@
 // Portal Digital Desa — table definitions shared by the migration, server-side validation,
 // the generic admin CRUD API and the admin forms. Pure module: safe to import from the browser.
-export const SCHEMA_VERSION='portal-v1';
+export const SCHEMA_VERSION='portal-v2';
 
 export const facilityCategories=[
   ['wisata','Wisata','🏖'],['kesehatan','Kesehatan','🏥'],['apotek','Apotek','💊'],['polisi','Polisi','🚓'],
@@ -189,6 +189,15 @@ function columnSql(name,f){
     default:return `${name} TEXT NOT NULL DEFAULT ''`;
   }
 }
+// Every image field may hold up to MAX_IMAGES photos: the first in the column itself, the rest as a JSON list in <field>_more.
+export const MAX_IMAGES=3;
+// Homepage blocks the admin can show/hide and reorder (the hero slideshow is always first).
+export const homeSectionKeys=['quick','news','profile','weather','market','tourism','projects','stats','gallery','latest','map','contact'];
+export const homeSectionLabels={quick:'Akses cepat layanan',news:'Pengumuman & agenda terdekat',profile:'Profil singkat desa',weather:'Cuaca',market:'Potensi desa / lapak',tourism:'Wisata desa',projects:'Pembangunan terbaru',stats:'Data desa singkat',gallery:'Galeri desa (slide)',latest:'Berita terbaru',map:'Peta desa',contact:'Kontak'};
+export const extraImageColumns=()=>[
+  ...Object.entries(tables).flatMap(([table,def])=>Object.entries(def.fields).filter(([,f])=>f.type==='image').map(([k])=>[table,k+'_more'])),
+  ['complaints','image_more']
+];
 // Idempotent DDL (CREATE ... IF NOT EXISTS) valid for both SQLite and PostgreSQL. Parents come before children.
 export function portalDDL(){
   const out=[];

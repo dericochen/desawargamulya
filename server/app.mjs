@@ -2,10 +2,12 @@ import express from 'express';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {query,transaction,getRecord,putRecord,parseRow,hash,verifyPassword,hashPassword} from './db.mjs';
 import {validateEnrollment,saveEvent,publicEnrollment,mountRegistrations,refreshEventTimes} from './registrations.mjs';
-import {mountPortal,portalMediaVisible,pruneMedia} from './portal.mjs';
+import {mountPortal,portalMediaVisible,pruneMedia,imageList} from './portal.mjs';
+import {homeSectionKeys} from './seed.mjs';
 const app=express();
 app.disable('x-powered-by');
-app.use(express.json({limit:'3mb'}));
+// Up to 3 compressed photos per form (hero slides: 5) fit comfortably below Vercel's 4.5 MB request limit.
+app.use(express.json({limit:'4mb'}));
 app.use((req,res,next)=>{
   res.set('X-Content-Type-Options','nosniff');res.set('Referrer-Policy','strict-origin-when-cross-origin');
   res.set('X-Frame-Options','SAMEORIGIN');
@@ -39,6 +41,7 @@ function imageSafe(value){
   if(m){const b=Buffer.from(m[2],'base64');const type=m[1];if(b.length>1600000)throw fail('Gambar terlalu besar. Maksimal 1,5 MB.');if((type==='jpeg'&&b[0]===255&&b[1]===216)||(type==='png'&&b.subarray(0,8).toString('hex')==='89504e470d0a1a0a')||(type==='webp'&&b.subarray(0,4).toString()==='RIFF'&&b.subarray(8,12).toString()==='WEBP'))return v;}
   throw fail('Gunakan gambar JPG, PNG, WebP, atau alamat HTTPS yang valid.');
 }
+const persistAll=async(list,recordId)=>{const out=[];for(const v of list)out.push(await persistImage(v,recordId));return out;};
 async function persistImage(value,recordId){
   if(value.startsWith('/api/media/')){
     const rows=await query('SELECT record_id FROM media WHERE id=?',[value.split('/').pop()]);
@@ -61,7 +64,10 @@ function validate(kind,input){
   if(!allowed)throw fail('Jenis konten tidak dikenal.');
   for(const k of allowed)d[k]=clean(input[k],['body','description'].includes(k)?12000:500);
   if(d.title.length<3)throw fail('Judul minimal 3 karakter.');
-  if(kind!=='event')d.image=imageSafe(input.image);
+  if(kind!=='event'){
+    const list=Array.isArray(input.images)?input.images:[input.image];
+    d.images=imageList(list[0]||'',list.slice(1),imageSafe);d.image=d.images[0]||'';
+  }
   if(kind==='article'){if(!d.body)throw fail('Isi informasi wajib diisi.');d.featured=!!input.featured;if(!dateSafe(d.date))throw fail('Tanggal tidak valid.');}
   if(kind==='gallery'&&!d.image)throw fail('Foto galeri wajib diisi.');
   if(kind==='gallery'){d.sortOrder=Number(input.sortOrder??100);if(!Number.isInteger(d.sortOrder)||d.sortOrder<0||d.sortOrder>9999)throw fail('Urutan tampil berupa angka 0–9999.');}
@@ -118,7 +124,21 @@ app.put('/api/admin/site',auth,async(req,res)=>{
   if(!d.name||!d.heroTitle||!d.about)throw fail('Nama desa, judul utama, dan profil wajib diisi.');
   try{new Intl.DateTimeFormat('id-ID',{timeZone:d.timezone});}catch{throw fail('Zona waktu tidak valid.');}
   for(const k of ['mapUrl','sourceUrl'])if(d[k]&&!/^https:\/\//.test(d[k]))throw fail('Tautan harus menggunakan HTTPS.');
-  d.heroImage=await persistImage(imageSafe(req.body.heroImage??d.heroImage),'site');d.demo=req.body.demo!==false;
+  if(Array.isArray(req.body.heroSlides)){
+    if(req.body.heroSlides.length>5)throw fail('Slide beranda maksimal 5 foto.');
+    d.heroSlides=[];for(const s of req.body.heroSlides){const image=imageSafe(s?.image);if(!image)throw fail('Setiap slide beranda wajib memiliki foto.');d.heroSlides.push({image:await persistImage(image,'site'),caption:clean(s.caption,200)});}
+    if(!d.heroSlides.length)throw fail('Isi minimal satu foto slide beranda.');
+  }
+  d.heroImage=d.heroSlides?.[0]?.image||await persistImage(imageSafe(req.body.heroImage??d.heroImage),'site');d.heroCaption=d.heroSlides?.[0]?.caption??d.heroCaption;
+  if('logo' in req.body)d.logo=await persistImage(imageSafe(req.body.logo),'site');
+  if(Array.isArray(req.body.heroButtons))d.heroButtons=req.body.heroButtons.slice(0,2).map(b=>{const x={label:clean(b.label,40),href:clean(b.href,120)};if(x.label&&!/^\/[a-z0-9\-/?=&]*$/i.test(x.href))throw fail('Tautan tombol beranda harus alamat internal, misalnya /wisata.');return x;}).filter(b=>b.label);
+  if(Array.isArray(req.body.homeSections)){
+    const known=homeSectionKeys;const seen=new Set();
+    d.homeSections=req.body.homeSections.filter(s=>known.includes(s?.key)&&!seen.has(s.key)&&seen.add(s.key)).map(s=>({key:s.key,visible:s.visible!==false}));
+    for(const key of known)if(!seen.has(key))d.homeSections.push({key,visible:false});
+  }
+  if('backgroundStyle' in req.body){if(!['gelombang','anyaman','polos'].includes(req.body.backgroundStyle))throw fail('Motif latar tidak dikenal.');d.backgroundStyle=req.body.backgroundStyle;}
+  d.demo=req.body.demo!==false;
   for(const [k,min,max] of [['villageLat',-90,90],['villageLng',-180,180],['officeLat',-90,90],['officeLng',-180,180]])if(k in req.body){const n=Number(req.body[k]);if(req.body[k]===''||!Number.isFinite(n)||n<min||n>max)throw fail('Koordinat peta tidak valid.');d[k]=n;}
   for(const k of ['nav','labels'])if(req.body[k])for(const key of Object.keys(d[k]))d[k][key]=clean(req.body[k][key]||d[k][key],100);
   if(req.body.pages)for(const key of Object.keys(d.pages))for(const field of ['eyebrow','title','intro'])if(field in (req.body.pages[key]||{}))d.pages[key][field]=clean(req.body.pages[key][field],field==='intro'?1000:150);
@@ -140,14 +160,14 @@ app.put('/api/admin/site',auth,async(req,res)=>{
   }
   if(Array.isArray(req.body.credits))d.credits=req.body.credits.slice(0,30).map(r=>{const c={};for(const k of ['title','author','source','license','licenseUrl'])c[k]=clean(r[k],500);for(const k of ['source','licenseUrl'])if(c[k]&&!/^https:\/\//.test(c[k]))throw fail('Tautan sumber dan lisensi harus menggunakan HTTPS.');return c;});
   const saved=await putRecord('site','site','published',d);
-  await pruneMedia('site',[saved.heroImage]);
+  await pruneMedia('site',[saved.heroImage,saved.logo,...(saved.heroSlides||[]).map(s=>s.image)]);
   if(saved.timezone!==current.timezone)await refreshEventTimes();
   res.json(saved);
 });
 app.post('/api/admin/records',auth,async(req,res)=>{
   const {kind}=req.body;if(!kinds.includes(kind))throw fail('Jenis tidak valid.');const status=req.body.status||'draft';if(!['draft','published'].includes(status))throw fail('Konten baru harus disimpan sebagai draf atau terbit.');const d=validate(kind,req.body);const id=randomUUID();
   if(kind==='product'&&d.phone&&!d.consent)throw fail('Izin publikasi kontak wajib dikonfirmasi.');
-  if(d.image)d.image=await persistImage(d.image,id);
+  if(d.images){d.images=await persistAll(d.images,id);d.image=d.images[0]||'';}
   res.status(201).json(kind==='event'?await saveEvent(id,status,d):await putRecord(id,kind,status,d));
 });
 app.put('/api/admin/records/:id',auth,async(req,res)=>{
@@ -156,7 +176,7 @@ app.put('/api/admin/records/:id',auth,async(req,res)=>{
   const allowed=old.kind==='product'?['draft','pending','published','revision','rejected','archived']:['draft','published','archived'];
   if(!allowed.includes(req.body.status))throw fail('Status tidak valid.');
   const d=validate(old.kind,req.body);
-  if(d.image)d.image=await persistImage(d.image,old.id);
+  if(d.images){d.images=await persistAll(d.images,old.id);d.image=d.images[0]||'';}
   if(old.kind==='product'){
     if(d.phone&&!d.consent)throw fail('Izin publikasi kontak wajib dikonfirmasi.');
     d.moderationNote=clean(req.body.moderationNote,2000);
@@ -164,7 +184,7 @@ app.put('/api/admin/records/:id',auth,async(req,res)=>{
     d.privateContact=old.privateContact||'';d.submissionToken=old.submissionToken||'';
   }
   const saved=old.kind==='event'?await saveEvent(old.id,req.body.status,d,old.updatedAt):await putRecord(old.id,old.kind,req.body.status,d);
-  if(old.kind!=='event')await pruneMedia(old.id,[d.image]);
+  if(old.kind!=='event')await pruneMedia(old.id,d.images||[]);
   res.json(saved);
 });
 app.delete('/api/admin/records/:id',auth,async(req,res)=>{
@@ -183,11 +203,12 @@ app.post('/api/submissions',async(req,res)=>{
   await rate(req,'submit',8,60);
   if(req.body.website)throw fail('Pengajuan tidak dapat diproses.');
   // Public submissions must upload the photo itself; external URLs would load third-party content in the admin's browser.
-  if(typeof req.body.image!=='string'||!req.body.image.startsWith('data:image/'))throw fail('Unggah foto produk berformat JPG, PNG, atau WebP.');
-  const d=validate('product',{...req.body,availability:req.body.availability||'Tersedia'});
+  const photos=Array.isArray(req.body.images)?req.body.images:[req.body.image];
+  if(!photos.length||photos.some(p=>typeof p!=='string'||!p.startsWith('data:image/')))throw fail('Unggah foto produk berformat JPG, PNG, atau WebP.');
+  const d=validate('product',{...req.body,images:photos,availability:req.body.availability||'Tersedia'});
   if(!d.image||!d.phone||!d.consent)throw fail('Foto, kontak, dan izin publikasi kontak wajib diisi.');
   const token=randomBytes(24).toString('hex');d.submissionToken=hash(token);d.privateContact=d.phone;d.featured=false;
-  const id=randomUUID();d.image=await persistImage(d.image,id);
+  const id=randomUUID();d.images=await persistAll(d.images,id);d.image=d.images[0];
   const item=await putRecord(id,'product','pending',d);
   res.status(201).json({id:item.id,token,status:'pending',message:'Pengajuan diterima. Produk akan tampil setelah disetujui admin.'});
 });

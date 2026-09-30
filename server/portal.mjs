@@ -2,7 +2,7 @@
 // complaints with TIK-xxx tickets, and token-based citizen ↔ admin chat.
 import {randomBytes,randomUUID} from 'node:crypto';
 import {query,transaction,hash} from './db.mjs';
-import {tables,complaintCategories,complaintStatuses,chatCategories,ticketLabel} from './portal-schema.mjs';
+import {tables,complaintCategories,complaintStatuses,chatCategories,ticketLabel,MAX_IMAGES} from './portal-schema.mjs';
 
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const now=()=>new Date().toISOString();
@@ -15,9 +15,16 @@ const statusCodes=complaintStatuses.map(s=>s[0]);
 const def=table=>{const d=tables[table];if(!d)throw fail('Data tidak dikenal.',404);return d;};
 
 // Neon returns BIGINT/COUNT as strings; normalize numeric columns so both databases give the same JSON.
+export const parseList=v=>{if(Array.isArray(v))return v;try{const a=JSON.parse(v||'[]');return Array.isArray(a)?a.filter(x=>typeof x==='string'):[];}catch{return [];}};
+// Accepts either a combined list (primary first) or primary + extras and returns up to MAX_IMAGES validated values.
+export function imageList(primary,more,imageSafe,label='Foto'){
+  const list=[primary,...(Array.isArray(more)?more:[])].filter(v=>typeof v==='string'&&v.trim());
+  if(list.length>MAX_IMAGES)throw fail(`${label} maksimal ${MAX_IMAGES} foto.`);
+  return list.map(v=>imageSafe(v));
+}
 function normalize(table,row){
   if(!row)return row;const out={...row};
-  for(const [k,f] of Object.entries(tables[table].fields))if(['int','bigint','bool'].includes(f.type))out[k]=Number(out[k]||0);else if(f.type==='num'&&out[k]!==null)out[k]=Number(out[k]);
+  for(const [k,f] of Object.entries(tables[table].fields))if(['int','bigint','bool'].includes(f.type))out[k]=Number(out[k]||0);else if(f.type==='num'&&out[k]!==null)out[k]=Number(out[k]);else if(f.type==='image')out[k+'_more']=parseList(out[k+'_more']);
   return out;
 }
 const select=async(table,where='',args=[])=>(await query(`SELECT * FROM ${table}${where?' WHERE '+where:''} ORDER BY ${tables[table].order}`,args)).map(r=>normalize(table,r));
@@ -50,7 +57,11 @@ async function validateRow(table,input,old,id,{imageSafe,persistImage}){
       case 'enum':{const opts=optionValues(f),s=v==null?opts[0]:String(v);if(!opts.includes(s))throw fail(`${f.label} tidak valid.`);out[k]=s;break;}
       case 'date':{const s=str(v,10);if(s&&!dateSafe(s))throw fail(`${f.label} tidak valid.`);if(f.required&&!s)throw fail(`${f.label} wajib diisi.`);out[k]=s;break;}
       case 'phone':{const s=str(v,25);if(s&&!/^\+?[\d\s().-]{3,25}$/.test(s))throw fail(`${f.label} hanya boleh berisi angka, spasi, tanda kurung, atau tanda hubung.`);out[k]=s;break;}
-      case 'image':{const s=imageSafe(typeof v==='string'?v:'');if(f.required&&!s)throw fail(`${f.label} wajib diunggah.`);out[k]=s;break;}
+      case 'image':{
+        const has=o=>Object.prototype.hasOwnProperty.call(input,o);
+        const list=imageList(typeof v==='string'?v:'',has(k+'_more')?input[k+'_more']:old?old[k+'_more']:[],imageSafe,f.label);
+        if(f.required&&!list.length)throw fail(`${f.label} wajib diunggah.`);
+        out[k]=list[0]||'';out[k+'_more']=list.slice(1);break;}
       case 'ref':{const s=typeof v==='string'?v.trim():'';if(!s){if(f.required)throw fail(`${f.label} wajib dipilih.`);out[k]=null;break;}
         if(f.table===table&&s===id)throw fail(`${f.label} tidak boleh menunjuk dirinya sendiri.`);
         if(!(await query(`SELECT id FROM ${f.table} WHERE id=?`,[s])).length)throw fail(`${f.label} tidak ditemukan.`);out[k]=s;break;}
@@ -59,7 +70,10 @@ async function validateRow(table,input,old,id,{imageSafe,persistImage}){
   if(d.parent&&old)out[d.parent.key]=old[d.parent.key];
   d.normalize?.(out);const message=d.check?.(out);if(message)throw fail(message);
   if(d.fields.slug)out.slug=await uniqueSlug(table,out.name,id);
-  for(const [k,f] of Object.entries(d.fields))if(f.type==='image'&&out[k])out[k]=await persistImage(out[k],owner(table,id));
+  for(const [k,f] of Object.entries(d.fields))if(f.type==='image'){
+    if(out[k])out[k]=await persistImage(out[k],owner(table,id));
+    out[k+'_more']=JSON.stringify(await Promise.all(out[k+'_more'].map(v=>persistImage(v,owner(table,id)))));
+  }
   return out;
 }
 export async function pruneMedia(ownerKey,values){
@@ -67,7 +81,7 @@ export async function pruneMedia(ownerKey,values){
   if(!keep.length)return query('DELETE FROM media WHERE record_id=?',[ownerKey]);
   return query(`DELETE FROM media WHERE record_id=? AND id NOT IN (${keep.map(()=>'?').join(',')})`,[ownerKey,...keep]);
 }
-const imageValues=(table,row)=>Object.entries(tables[table].fields).filter(([,f])=>f.type==='image').map(([k])=>row[k]);
+const imageValues=(table,row)=>Object.entries(tables[table].fields).filter(([,f])=>f.type==='image').flatMap(([k])=>[row[k],...parseList(row[k+'_more'])]);
 
 // Media stored for portal rows is public only when the row (and its parent) is publicly visible.
 export async function portalMediaVisible(recordId){
@@ -178,15 +192,17 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
     if(!complaintCategories.includes(b.category))throw fail('Pilih kategori pengaduan.');
     const title=required(b.title,'Judul pengaduan',5,150),body=required(b.body,'Isi pengaduan',10,3000),location=required(b.location,'Lokasi kejadian',3,300);
     if(b.consent!==true)throw fail('Centang pernyataan kebenaran informasi sebelum mengirim.');
-    if(b.image&&(typeof b.image!=='string'||!b.image.startsWith('data:image/')))throw fail('Unggah foto berformat JPG, PNG, atau WebP.');
-    const image=b.image?imageSafe(b.image):'';
+    const photos=Array.isArray(b.images)?b.images:b.image?[b.image]:[];
+    if(photos.length>MAX_IMAGES)throw fail(`Foto pengaduan maksimal ${MAX_IMAGES}.`);
+    if(photos.some(p=>typeof p!=='string'||!p.startsWith('data:image/')))throw fail('Unggah foto berformat JPG, PNG, atau WebP.');
+    const images=photos.map(p=>imageSafe(p));
     await rate(req,'complaint',6,60);
     const id=randomUUID(),stamp=now();
     const counter=await query("UPDATE counters SET value=value+1 WHERE name='complaint' RETURNING value");
     const ticketNo=Number(counter[0].value);
-    const stored=image?await persistImage(image,'complaint:'+id):'';
+    const stored=[];for(const img of images)stored.push(await persistImage(img,'complaint:'+id));
     await transaction([
-      {sql:'INSERT INTO complaints (id,ticket_no,name,phone,village_area_id,area_name,rt,rw,category,title,body,location,image,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',args:[id,ticketNo,name,phone,area?.id||null,area?.name||'',rtRw.rt,rtRw.rw,b.category,title,body,location,stored,'baru',stamp,stamp]},
+      {sql:'INSERT INTO complaints (id,ticket_no,name,phone,village_area_id,area_name,rt,rw,category,title,body,location,image,image_more,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',args:[id,ticketNo,name,phone,area?.id||null,area?.name||'',rtRw.rt,rtRw.rw,b.category,title,body,location,stored[0]||'',JSON.stringify(stored.slice(1)),'baru',stamp,stamp]},
       {sql:'INSERT INTO complaint_updates (id,complaint_id,status,note,created_at) VALUES (?,?,?,?,?)',args:[randomUUID(),id,'baru','Pengaduan diterima dan menunggu verifikasi petugas.',stamp]}
     ]);
     res.status(201).json({ticket:ticketLabel(ticketNo),status:'baru'});
@@ -200,7 +216,7 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
     // Only non-personal fields: name, phone, description, location and photo stay with the admin.
     res.json({ticket:ticketLabel(c.ticket_no),category:c.category,area:c.area_name,status:c.status,createdAt:c.created_at,updatedAt:c.updated_at,updates});
   });
-  const complaintRow=c=>({...c,ticket_no:Number(c.ticket_no),ticket:ticketLabel(c.ticket_no)});
+  const complaintRow=c=>({...c,ticket_no:Number(c.ticket_no),ticket:ticketLabel(c.ticket_no),image_more:parseList(c.image_more)});
   app.get('/api/admin/complaints',auth,async(req,res)=>res.json((await query('SELECT * FROM complaints ORDER BY ticket_no DESC LIMIT 2000')).map(complaintRow)));
   app.get('/api/admin/complaints/:id',auth,async(req,res)=>{
     const rows=await query('SELECT * FROM complaints WHERE id=?',[req.params.id]);if(!rows.length)throw fail('Pengaduan tidak ditemukan.',404);

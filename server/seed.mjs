@@ -18,11 +18,17 @@ function dataSections(){return [
   {code:'L',title:'Organisasi & kegiatan rutin',chart:'table',note:'Jadwal kegiatan dapat dilihat pada Agenda.',link:'/informasi?tab=agenda',rows:[row('Karang Taruna',1,'organisasi'),row('PKK',1,'organisasi'),row('Kelompok nelayan',4,'kelompok'),row('Kerja bakti lingkungan','Bulanan'),row('Posyandu balita & lansia','Bulanan')]},
   {code:'M',title:'UMKM & produk lokal',chart:'table',note:'Produk warga ditampilkan di Lapak Desa setelah ditinjau admin.',link:'/lapak',rows:[row('Olahan hasil laut (ikan asin, terasi, kerupuk)',14,'usaha'),row('Makanan & minuman',12,'usaha'),row('Kerajinan',6,'usaha'),row('Jasa',4,'usaha')]}
 ];}
+import {homeSectionKeys} from './portal-schema.mjs';
+export {homeSectionKeys};
 export const siteSeed = {
   name:'Marga Mulya', identity:'Desa Marga Mulya', area:'Portal informasi & kegiatan masyarakat',
   heroTitle:'Kenali desanya.\nTemukan ceritanya.',
   heroText:'Kabar masyarakat, agenda bersama, dan hasil usaha warga Desa Marga Mulya dalam satu tempat.',
   heroImage:'/images/pesisir-tangerang.jpg', heroCaption:'Perahu nelayan di pesisir Tangerang (Pantai Tanjung Pasir) · foto ilustrasi',
+  heroSlides:[{image:'/images/pesisir-tangerang.jpg',caption:'Perahu nelayan di pesisir Tangerang (Pantai Tanjung Pasir) · foto ilustrasi'},{image:'/images/kantor-desa-marga-mulya.jpg',caption:'Kantor Desa Marga Mulya, 28 Agustus 2024 · Enperfectify World / CC BY-SA 4.0'}],
+  heroButtons:[{label:'Mengenal desa',href:'/profil'},{label:'Jelajahi wisata pesisir',href:'/wisata'}],
+  homeSections:homeSectionKeys.map(key=>({key,visible:true})),
+  logo:'', backgroundStyle:'gelombang',
   homeProfileTitle:'Desa pesisir di utara Mauk', regionLines:'Kecamatan Mauk\nKabupaten Tangerang\nProvinsi Banten', weatherPlace:'Mauk, Tangerang',
   tourismIntro:'Pantai-pantai di pesisir Tanjung Kait, Desa Marga Mulya.', marketIntro:'Kenali produk dan usaha yang tumbuh di lingkungan kita.',
   mapIntro:'Pantai, sekolah, tempat ibadah, layanan kesehatan, dan keamanan di sekitar desa.', projectsIntro:'Kegiatan pembangunan desa beserta anggaran dan progresnya.',
