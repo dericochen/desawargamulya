@@ -77,7 +77,7 @@ export function CountUp({value}){
       const tick=t=>{const p=Math.min(1,(t-start)/dur),v=Math.round(target*(1-Math.pow(1-p,3)));setShown(new Intl.NumberFormat('id-ID').format(v));if(p<1)frame=requestAnimationFrame(tick);};frame=requestAnimationFrame(tick);},{threshold:.4});
     io.observe(ref.current);return()=>{io.disconnect();cancelAnimationFrame(frame);};
   },[raw]);
-  return <span ref={ref} className="count-up" aria-label={raw}><span aria-hidden="true">{shown}</span></span>;
+  return <span ref={ref} className="count-up"><span aria-hidden="true">{shown}</span><span className="sr-only">{raw}</span></span>;
 }
 // Village logo from the CMS; falls back to the monogram.
 export function BrandMark({site}){return site?.logo?<img className="brand-logo" src={site.logo} alt={'Logo '+(site.identity||'desa')} width="48" height="48"/>:<span className="brand-mark" aria-hidden="true">M<span>m</span></span>;}

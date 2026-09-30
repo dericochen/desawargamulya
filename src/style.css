@@ -289,3 +289,5 @@ body[data-bg=budaya] .section-heading .eyebrow:before{content:"";display:inline-
 .hero{overflow:hidden}body[data-bg=budaya] .page-intro:before{right:0}
 
 .count-up,.count-up span,.stats-grid .count-up,.stats-grid .count-up span{font:inherit!important;color:inherit!important;margin:0!important;letter-spacing:inherit}
+
+@keyframes page-rise{from{transform:translateY(8px)}to{transform:none}}.page-enter{animation:page-rise .45s ease both}
