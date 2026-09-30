@@ -1,0 +1,8 @@
+{
+  "buildCommand":"npm run build",
+  "outputDirectory":"dist",
+  "framework":"vite",
+  "regions":["sin1"],
+  "functions":{"api/**/*.js":{"maxDuration":30}},
+  "rewrites":[{"source":"/api/:path*","destination":"/api?_route=:path*"},{"source":"/profil","destination":"/index.html"},{"source":"/informasi","destination":"/index.html"},{"source":"/agenda","destination":"/index.html"},{"source":"/lapak","destination":"/index.html"},{"source":"/galeri","destination":"/index.html"},{"source":"/kontak","destination":"/index.html"},{"source":"/admin","destination":"/index.html"}]
+}
