@@ -182,15 +182,20 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
   });
 
   // ---------- Complaints (pengaduan) ----------
-  // Ticket numbers (TIK-001) are easy to share but sequential, so tracking also needs a private 6-digit PIN.
-  const newPin=()=>String(randomInt(0,1000000)).padStart(6,'0');
+  // Ticket code = sequential number + 3 random characters, e.g. TIK-004-K7Q. One string to copy and paste;
+  // the random part (stored only as a hash) stops people from guessing other residents' tickets.
+  const codeChars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I to avoid typing mistakes
+  const newPin=()=>Array.from({length:3},()=>codeChars[randomInt(codeChars.length)]).join('');
   const pinHash=(id,pin)=>hash('complaint-pin:'+id+':'+pin);
+  const ticketCode=(no,pin)=>ticketLabel(no)+'-'+pin;
   async function complaintByTicket(body){
-    const m=str(body?.ticket,20).toUpperCase().replace(/\s/g,'').match(/^(?:TIK-?)?(\d{1,7})$/),pin=str(body?.pin,10).replace(/\s/g,'');
+    // Accepts "TIK-004-K7Q" (also lower case / without dashes). Older tickets: TIK-001 + 6-digit PIN.
+    const raw=(str(body?.code??body?.ticket,30)+(body?.pin?'-'+str(body.pin,10):'')).toUpperCase().replace(/[\s_.]/g,'');
+    const m=raw.match(/^(?:TIK)?-?(\d{1,7})-?([A-Z0-9]{3}|\d{6})$/);
     const rows=m?await query('SELECT * FROM complaints WHERE ticket_no=?',[Number(m[1])]):[];
     const c=rows[0];
-    if(c&&!c.pin_hash)throw fail('Pengaduan ini dibuat sebelum PIN diberlakukan. Hubungi Kantor Desa untuk mendapatkan PIN.',403);
-    if(!c||!/^\d{6}$/.test(pin)||pinHash(c.id,pin)!==c.pin_hash)throw fail('Nomor tiket atau PIN tidak sesuai. Periksa kembali, misalnya TIK-023 dan PIN 6 angka.',404);
+    if(c&&!c.pin_hash)throw fail('Pengaduan ini dibuat sebelum kode tiket diberlakukan. Hubungi Kantor Desa untuk mendapatkan kode baru.',403);
+    if(!c||!m||pinHash(c.id,m[2])!==c.pin_hash)throw fail('Kode tiket tidak ditemukan. Salin lengkap kode Anda, misalnya TIK-023-K7Q.',404);
     return c;
   }
   app.post('/api/complaints',async(req,res)=>{
@@ -216,7 +221,7 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
       {sql:'INSERT INTO complaints (id,ticket_no,name,phone,village_area_id,area_name,rt,rw,category,title,body,location,image,image_more,pin_hash,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',args:[id,ticketNo,name,phone,area?.id||null,area?.name||'',rtRw.rt,rtRw.rw,b.category,title,body,location,stored[0]||'',JSON.stringify(stored.slice(1)),pinHash(id,pin),'baru',stamp,stamp]},
       {sql:'INSERT INTO complaint_updates (id,complaint_id,status,note,created_at) VALUES (?,?,?,?,?)',args:[randomUUID(),id,'baru','Pengaduan diterima dan menunggu verifikasi petugas.',stamp]}
     ]);
-    res.status(201).json({ticket:ticketLabel(ticketNo),pin,status:'baru'});
+    res.status(201).json({ticket:ticketLabel(ticketNo),code:ticketCode(ticketNo,pin),status:'baru'});
   });
   app.post('/api/complaints/status',async(req,res)=>{
     await rate(req,'complaint-track',20,10);
@@ -237,11 +242,11 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
     res.json({ok:true});
   });
   const complaintRow=({pin_hash,...c})=>({...c,ticket_no:Number(c.ticket_no),ticket:ticketLabel(c.ticket_no),image_more:parseList(c.image_more),feedback_rating:Number(c.feedback_rating||0),has_pin:!!pin_hash});
-  // Admin creates a new PIN for a resident who lost it (shown once, then only its hash is stored).
+  // Admin creates a new ticket code for a resident who lost it (shown once, then only its hash is stored).
   app.post('/api/admin/complaints/:id/pin',auth,async(req,res)=>{
     const pin=newPin(),r=await query('UPDATE complaints SET pin_hash=? WHERE id=? RETURNING ticket_no',[pinHash(req.params.id,pin),req.params.id]);
     if(!r.length)throw fail('Pengaduan tidak ditemukan.',404);
-    res.json({pin,ticket:ticketLabel(r[0].ticket_no)});
+    res.json({code:ticketCode(r[0].ticket_no,pin),ticket:ticketLabel(r[0].ticket_no)});
   });
   app.get('/api/admin/complaints',auth,async(req,res)=>res.json((await query('SELECT * FROM complaints ORDER BY ticket_no DESC LIMIT 2000')).map(complaintRow)));
   app.get('/api/admin/complaints/:id',auth,async(req,res)=>{

@@ -113,12 +113,12 @@ export function ComplaintsAdmin({onChanged,site}){
     {rows===null?!error&&<Busy/>:list.length?<div className="records-list">{list.map(c=><div className="registration-row" key={c.id}><div className="registration-symbol ticket-symbol">{c.ticket}</div><div className="registration-person"><strong>{c.title}</strong><p>{c.category} · {c.area_name||'Wilayah tidak diisi'}{c.rt&&` · RT ${c.rt}/RW ${c.rw}`}</p><p>{c.name} · {timeLabel(c.created_at)}</p></div><span className={'status '+complaintClass[c.status]}>{complaintLabel[c.status]}</span><button className="button secondary" onClick={()=>setOpen(c.id)}>Tindak lanjut</button></div>)}</div>:<Empty title="Belum ada pengaduan yang sesuai"/>}
     {open&&<ComplaintDetail id={open} identity={site?.identity||'Pemerintah desa'} onClose={()=>setOpen(null)} onSaved={async()=>{await load();onChanged?.();}}/>}</>;
 }
-// Residents who lost their PIN get a new one from the officer (the old PIN stops working immediately).
+// Residents who lost their ticket code get a new one from the officer (the old code stops working immediately).
 function PinReset({complaint:c,identity}){
-  const [pin,setPin]=useState(''),[error,setError]=useState('');
-  const wa=pin&&'https://wa.me/'+c.phone+'?text='+encodeURIComponent(`Halo ${c.name}, PIN baru untuk cek pengaduan ${c.ticket} di website ${identity}: ${pin}. Jangan bagikan PIN ini kepada orang lain.`);
-  return <div className="pin-reset">{pin?<><p>PIN baru untuk <strong>{c.ticket}</strong>: <strong className="ticket-small">{pin}</strong> (hanya ditampilkan sekali)</p><a className="button secondary" href={wa} target="_blank" rel="noreferrer"><MessageSquare/>Kirim PIN ke pelapor</a></>
-    :<button type="button" className="plain-link" onClick={async()=>{if(!confirm('Buat PIN baru? PIN lama tidak akan berlaku lagi.'))return;try{setPin((await api('/admin/complaints/'+c.id+'/pin',{method:'POST'})).pin);}catch(x){setError(x.message);}}}>{c.has_pin?'Pelapor lupa PIN? Buat PIN baru':'Pengaduan lama tanpa PIN — buat PIN untuk pelapor'}</button>}<Notice error>{error}</Notice></div>;
+  const [code,setCode]=useState(''),[error,setError]=useState('');
+  const wa=code&&'https://wa.me/'+c.phone+'?text='+encodeURIComponent(`Halo ${c.name}, kode baru untuk cek pengaduan Anda di website ${identity}: ${code}. Kode ini bersifat pribadi.`);
+  return <div className="pin-reset">{code?<><p>Kode tiket baru: <strong className="ticket-small">{code}</strong> (hanya ditampilkan sekali)</p><a className="button secondary" href={wa} target="_blank" rel="noreferrer"><MessageSquare/>Kirim kode ke pelapor</a></>
+    :<button type="button" className="plain-link" onClick={async()=>{if(!confirm('Buat kode tiket baru? Kode lama tidak akan berlaku lagi.'))return;try{setCode((await api('/admin/complaints/'+c.id+'/pin',{method:'POST'})).code);}catch(x){setError(x.message);}}}>{c.has_pin?'Pelapor kehilangan kode? Buat kode tiket baru':'Pengaduan lama tanpa kode — buatkan kode tiket untuk pelapor'}</button>}<Notice error>{error}</Notice></div>;
 }
 function ComplaintDetail({id,identity,onClose,onSaved}){
   const [c,setC]=useState(null),[status,setStatus]=useState(''),[note,setNote]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[msg,setMsg]=useState('');

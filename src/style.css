@@ -329,3 +329,5 @@ body[data-bg=budaya] .quick-access{background:#fff}
 .leaflet-container .map-touch-lock{background:#fff;border:2px solid #0003;border-radius:5px;padding:8px 12px;font:600 .8125rem 'DM Sans',sans-serif;min-height:40px;cursor:pointer}
 .map-locked{cursor:default}
 @media(max-width:700px){.coast-facts{grid-template-columns:1fr 1fr 1fr;gap:8px}.coast-facts dd{font-size:1.1rem}.coast-days li{grid-template-columns:1fr;gap:2px}.coast-actions .button{flex:1 1 45%}.track-form .field:nth-child(2){max-width:none}}
+
+.ticket-code{max-width:420px;font-size:2.4rem;letter-spacing:3px;user-select:all;overflow-wrap:anywhere}@media(max-width:700px){.ticket-code{font-size:1.8rem;letter-spacing:2px}}
