@@ -32,7 +32,7 @@ function useBot(portal,{close,toChat}){
       case 'handover':return handover();
       case 'root':return show(root());
       case 'complaint':return proceed(`Baik. Silakan isi formulir pengaduan${o.action_value?' kategori '+o.action_value:''}. Anda akan menerima nomor tiket untuk mengecek perkembangannya.`,'Buka formulir pengaduan',()=>{close();navigate('/pengaduan?buat=1'+(o.action_value?'&kategori='+encodeURIComponent(o.action_value):''));});
-      case 'track':return proceed('Siapkan nomor tiket Anda, misalnya TIK-023, lalu buka halaman Cek Pengaduan.','Buka Cek Pengaduan',()=>{close();navigate('/pengaduan/cek');});
+      case 'track':return proceed('Siapkan nomor tiket Anda, misalnya TIK-023, lalu buka halaman Cek Pengaduan.','Buka Cek Pengaduan',()=>{close();navigate('/pengaduan?tab=cek');});
       case 'link':return proceed('Informasi lengkap tersedia pada halaman berikut.','Buka halaman',()=>{close();navigate(o.action_value);});
       case 'emergency':close();return openEmergency();
       case 'faq':{

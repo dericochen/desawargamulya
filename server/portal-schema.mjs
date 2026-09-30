@@ -4,14 +4,14 @@ export const SCHEMA_VERSION='portal-v1';
 
 export const facilityCategories=[
   ['wisata','Wisata','🏖'],['kesehatan','Kesehatan','🏥'],['apotek','Apotek','💊'],['polisi','Polisi','🚓'],
-  ['pemadam','Pemadam kebakaran','🚒'],['sekolah','Sekolah','🏫'],['ibadah','Tempat ibadah','🕌'],
+  ['pemadam','Pemadam kebakaran','🚒'],['sekolah','Sekolah','🏫'],['ibadah','Tempat ibadah','🛐'],
   ['pemerintahan','Pemerintahan','🏛'],['atm','ATM','🏧'],['spbu','SPBU','⛽'],['lainnya','Fasilitas lainnya','🛒']
 ];
 // Filter groups shown above the map; each group lists the categories it contains.
 export const mapFilters=[
   ['semua','Semua',[]],['wisata','Wisata',['wisata']],['kesehatan','Kesehatan',['kesehatan','apotek']],
   ['pendidikan','Pendidikan',['sekolah']],['pemerintahan','Pemerintahan',['pemerintahan']],
-  ['keamanan','Keamanan',['polisi','pemadam']],['ibadah','Ibadah',['ibadah']],['atm','ATM',['atm']],['lainnya','Lainnya',['spbu','lainnya']]
+  ['keamanan','Keamanan',['polisi','pemadam']],['ibadah','Tempat ibadah',['ibadah']],['atm','ATM',['atm']],['lainnya','Lainnya',['spbu','lainnya']]
 ];
 export const complaintCategories=['Infrastruktur','Jalan Rusak','Sampah','Drainase','Lampu Jalan','Pelayanan Desa','Keamanan','Bantuan Sosial','Lingkungan','Lainnya'];
 export const complaintStatuses=[['baru','BARU'],['diverifikasi','DIVERIFIKASI'],['diproses','DIPROSES'],['selesai','SELESAI'],['ditolak','DITOLAK']];

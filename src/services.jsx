@@ -26,7 +26,7 @@ function ComplaintForm({areas,initialCategory,onBack}){
   const ch=(k,v)=>setF(o=>({...o,[k]:v}));const area=areas.find(a=>a.id===f.village_area_id);
   useEffect(()=>{top.current?.scrollIntoView({block:'start'});},[receipt]);
   if(receipt)return <div className="receipt complaint-receipt" ref={top}><CheckCircle size={48}/><h2>Pengaduan Berhasil Dikirim</h2><p>Nomor Ticket Anda</p><div className="ticket-number" aria-live="polite">{receipt}</div><p>Simpan nomor ini untuk mengecek status pengaduan Anda.</p>
-    <div className="form-actions center"><button className="button" onClick={async()=>{try{await navigator.clipboard.writeText(receipt);setCopied('Nomor tiket tersalin.');}catch{setCopied('Catat nomor tiket di atas secara manual.');}}}><Clipboard/>Salin Nomor Ticket</button><Link className="button secondary" href={'/pengaduan/cek?tiket='+receipt}>Cek Pengaduan</Link></div><Notice>{copied}</Notice></div>;
+    <div className="form-actions center"><button className="button" onClick={async()=>{try{await navigator.clipboard.writeText(receipt);setCopied('Nomor tiket tersalin.');}catch{setCopied('Catat nomor tiket di atas secara manual.');}}}><Clipboard/>Salin Nomor Ticket</button><Link className="button secondary" href={'/pengaduan?tab=cek&tiket='+receipt}>Cek Pengaduan</Link></div><Notice>{copied}</Notice></div>;
   return <form ref={top} className="complaint-form panel" onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');try{const unit=area?.units.find(u=>u.id===f.unit);const r=await api('/complaints',{method:'POST',body:{...f,rt:unit?unit.rt:f.rt,rw:unit?unit.rw:f.rw}});rememberTicket(r.ticket);setReceipt(r.ticket);}catch(x){setError(x.message);}finally{setBusy(false);}}}>
     <button type="button" className="plain-link back-link" onClick={onBack}><ArrowLeft size={16}/>Kembali ke pertanyaan umum</button>
     <h2>Buat pengaduan</h2><p className="form-intro">Isi singkat saja. Data pribadi Anda hanya dibaca petugas desa dan tidak ditampilkan di website.</p>
@@ -67,13 +67,13 @@ function TrackComplaint(){
   </section>;
 }
 
-export function HelpCenter({data,mode}){
-  const [form,setForm]=useState(param('buat')==='1');const s=data.site;
+export function HelpCenter({data}){
+  const [form,setForm]=useState(param('buat')==='1');const s=data.site;const mode=param('tab')==='cek'?'cek':'faq';
   useEffect(()=>{setForm(param('buat')==='1');},[location.search]);
-  useEffect(()=>{if(mode==='tanya')openAssistant();},[mode]);
-  const actions=[[Megaphone,'Buat Pengaduan','Laporkan masalah di lingkungan',()=>navigate('/pengaduan?buat=1')],[SearchCheck,'Cek Pengaduan','Lihat perkembangan tiket',()=>navigate('/pengaduan/cek')],[MessageCircle,'Tanya Asisten Desa','Menu bantuan & chat admin',()=>openAssistant()],[PhoneCall,'Nomor Darurat','Polisi, ambulans, pemadam',openEmergency]];
+  useEffect(()=>{if(param('tanya')==='1')openAssistant();},[])
+  const actions=[[Megaphone,'Buat Pengaduan','Laporkan masalah di lingkungan',()=>navigate('/pengaduan?buat=1')],[SearchCheck,'Cek Pengaduan','Lihat perkembangan tiket',()=>navigate('/pengaduan?tab=cek')],[MessageCircle,'Tanya Asisten Desa','Menu bantuan & chat admin',()=>openAssistant()],[PhoneCall,'Nomor Darurat','Polisi, ambulans, pemadam',openEmergency]];
   return <><PageIntro {...s.pages.pengaduan}>{s.pages.pengaduan.intro}</PageIntro>
-    <div className="service-actions">{actions.map(([Icon,title,text,go])=><button key={title} className={title==='Nomor Darurat'?'emergency-action':''} onClick={go}><Icon aria-hidden="true"/><strong>{title}</strong><span>{text}</span></button>)}</div>
+    <div className="service-actions">{actions.map(([Icon,title,text,go])=><button key={title} className={(title==='Nomor Darurat'?'emergency-action ':'')+((title==='Cek Pengaduan'&&mode==='cek'&&!form)||(title==='Buat Pengaduan'&&form)?'current':'')} aria-current={(title==='Cek Pengaduan'&&mode==='cek'&&!form)||(title==='Buat Pengaduan'&&form)?'true':undefined} onClick={go}><Icon aria-hidden="true"/><strong>{title}</strong><span>{text}</span></button>)}</div>
     {form?<ComplaintForm areas={data.portal.areas} initialCategory={param('kategori')} onBack={()=>navigate('/pengaduan')}/>
       :mode==='cek'?<TrackComplaint/>
       :<><Faq faqs={data.portal.faqs}/>

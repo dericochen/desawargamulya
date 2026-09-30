@@ -294,16 +294,17 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
   // ---------- Dashboard summary ----------
   app.get('/api/admin/summary',auth,async(req,res)=>{
     const count=async(sql,args=[])=>Number((await query(sql,args))[0].total);
-    const [byStatus,unread,tourism,projects,aid,gallery,latestComplaints]=await Promise.all([
+    const [byStatus,unread,tourism,projects,aid,gallery,latestComplaints,media]=await Promise.all([
       query('SELECT status,COUNT(*) AS total FROM complaints GROUP BY status'),
       count("SELECT COUNT(*) AS total FROM chat_messages m JOIN chat_conversations c ON c.id=m.conversation_id WHERE m.sender='citizen' AND m.created_at>c.admin_read_at"),
       count('SELECT COUNT(*) AS total FROM tourism_places WHERE is_active=1'),
       count("SELECT COUNT(*) AS total FROM development_projects WHERE is_published=1 AND status IN ('Direncanakan','Berjalan')"),
       count("SELECT COUNT(*) AS total FROM aid_programs WHERE is_published=1 AND status<>'Selesai'"),
       count("SELECT COUNT(*) AS total FROM records WHERE kind='gallery' AND status='published'"),
-      query('SELECT id,ticket_no,name,category,title,status,created_at FROM complaints ORDER BY ticket_no DESC LIMIT 5')
+      query('SELECT id,ticket_no,name,category,title,status,created_at FROM complaints ORDER BY ticket_no DESC LIMIT 5'),
+      count('SELECT COALESCE(SUM(LENGTH(content)),0) AS total FROM media')
     ]);
     const complaints=Object.fromEntries(statusCodes.map(s=>[s,Number(byStatus.find(r=>r.status===s)?.total||0)]));
-    res.json({complaints,unread,tourism,projects,aid,gallery,latestComplaints:latestComplaints.map(complaintRow)});
+    res.json({complaints,unread,tourism,projects,aid,gallery,latestComplaints:latestComplaints.map(complaintRow),storage:{usedMB:Math.round(media/1048576*10)/10,limitMB:Number(process.env.MEDIA_LIMIT_MB||300)}});
   });
 }

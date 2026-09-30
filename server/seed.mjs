@@ -1,8 +1,31 @@
+// Village data following the EcoQuest reference structure (sections A–M). All values are dummy examples.
+// Section D (religion) is intentionally not displayed to keep the site free of SARA-related content.
+const row=(label,value,unit='')=>({label,value:String(value),unit});
+function dataSections(){return [
+  {code:'A',title:'Geografi & wilayah',chart:'table',note:'Batas dan luas wilayah contoh. Desa berada di pesisir utara Kabupaten Tangerang.',link:'',rows:[row('Luas wilayah',412,'ha'),row('Batas utara','Laut Jawa'),row('Batas timur','Desa tetangga (contoh)'),row('Batas selatan','Desa tetangga (contoh)'),row('Batas barat','Desa tetangga (contoh)')]},
+  {code:'A',title:'Penggunaan lahan',chart:'bar',note:'',link:'',rows:[row('Permukiman',118,'ha'),row('Tambak & perikanan',96,'ha'),row('Persawahan',84,'ha'),row('Pekarangan',42,'ha'),row('Perkebunan',28,'ha'),row('Prasarana umum',22,'ha'),row('Perkantoran',6,'ha'),row('Perkuburan',9,'ha'),row('Taman',7,'ha')]},
+  {code:'B',title:'Pemerintahan desa',chart:'table',note:'',link:'',rows:[row('Aparat desa',14,'orang'),row('Anggota Linmas',24,'orang'),row('Pos kamling',12,'pos'),row('Pos polisi',1,'pos'),row('Jumlah RW',6,'RW'),row('Jumlah RT',24,'RT'),row('Kantor desa & balai desa',2,'unit')]},
+  {code:'C',title:'Kependudukan & angkatan kerja',chart:'table',note:'',link:'',rows:[row('Jumlah penduduk','2.846','jiwa'),row('Laki-laki','1.439','jiwa'),row('Perempuan','1.407','jiwa'),row('Rumah tangga (KK)',842,'KK'),row('Tenaga kerja usia 18–56 tahun','1.652','orang'),row('Pencari kerja terdaftar',118,'orang'),row('Pernikahan tahun ini',31,'pasang'),row('Perceraian tahun ini',4,'pasang')]},
+  {code:'C',title:'Mata pencaharian pokok',chart:'bar',note:'',link:'',rows:[row('Nelayan',412,'orang'),row('Petani & petambak',358,'orang'),row('Karyawan swasta',287,'orang'),row('Pengrajin & UMKM',164,'orang'),row('Guru',38,'orang'),row('PNS',22,'orang'),row('TNI / POLRI',9,'orang'),row('Lainnya',182,'orang')]},
+  {code:'C',title:'Tingkat pendidikan penduduk',chart:'bar',note:'',link:'',rows:[row('Belum / tidak sekolah',498,'jiwa'),row('Tamat SD/MI',864,'jiwa'),row('Tamat SLTP/MTs',702,'jiwa'),row('Tamat SLTA/SMK/MA',611,'jiwa'),row('Diploma / Sarjana',171,'jiwa')]},
+  {code:'E',title:'Pendidikan',chart:'table',note:'',link:'',rows:[row('PAUD / TK',3,'lembaga'),row('SD/MI negeri & swasta',3,'sekolah'),row('SLTP/MTs',1,'sekolah'),row('Guru',46,'orang'),row('Murid',912,'orang'),row('Ruang kelas',38,'ruang'),row('Lembaga kursus (menjahit, komputer)',2,'lembaga'),row('Kelompok Paket A/B/C',2,'kelompok')]},
+  {code:'F',title:'Kesehatan & lingkungan',chart:'table',note:'',link:'',rows:[row('Posyandu',6,'unit'),row('Puskesmas pembantu',1,'unit'),row('Praktik bidan',2,'unit'),row('Bidan & perawat',7,'orang'),row('Imunisasi dasar lengkap bayi',94,'%'),row('Balita gizi baik',91,'%'),row('Rumah dengan air bersih (PDAM/sumur bor)',78,'%'),row('Rumah dengan jamban sehat',83,'%'),row('Pasangan usia subur ikut KB',412,'pasang')]},
+  {code:'G',title:'Pertanian, perikanan & peternakan',chart:'table',note:'',link:'',rows:[row('Luas sawah tadah hujan',84,'ha'),row('Produksi padi',386,'ton/tahun'),row('Produksi ikan tambak (bandeng, udang)',142,'ton/tahun'),row('Kelompok tani & nelayan',7,'kelompok'),row('Kambing & domba',260,'ekor'),row('Unggas (ayam, itik)','4.300','ekor')]},
+  {code:'H',title:'Ekonomi',chart:'table',note:'',link:'',rows:[row('Industri kecil / rumah tangga (olahan ikan, anyaman, makanan)',36,'usaha'),row('Koperasi',2,'unit'),row('Agen bank / BUMDes',3,'unit'),row('Pasar tradisional terdekat','Pasar Mauk'),row('Rumah tangga pengguna listrik PLN',97,'%')]},
+  {code:'I',title:'Infrastruktur jalan',chart:'bar',note:'Panjang jalan menurut jenis permukaan.',link:'',rows:[row('Aspal',6.4,'km'),row('Beton',3.1,'km'),row('Makadam / sirtu',2.2,'km'),row('Tanah',1.3,'km')]},
+  {code:'J',title:'Budaya & kesenian',chart:'table',note:'',link:'',rows:[row('Grup kesenian tradisional',3,'grup'),row('Sanggar tari anak',1,'sanggar'),row('Tradisi pesisir tahunan','Sedekah laut (contoh)')]},
+  {code:'K',title:'Wisata',chart:'table',note:'Detail destinasi dikelola pada menu Wisata.',link:'/wisata',rows:[row('Destinasi pantai',4,'lokasi'),row('Kawasan','Pesisir Tanjung Kait')]},
+  {code:'L',title:'Organisasi & kegiatan rutin',chart:'table',note:'Jadwal kegiatan dapat dilihat pada Agenda.',link:'/informasi?tab=agenda',rows:[row('Karang Taruna',1,'organisasi'),row('PKK',1,'organisasi'),row('Kelompok nelayan',4,'kelompok'),row('Kerja bakti lingkungan','Bulanan'),row('Posyandu balita & lansia','Bulanan')]},
+  {code:'M',title:'UMKM & produk lokal',chart:'table',note:'Produk warga ditampilkan di Lapak Desa setelah ditinjau admin.',link:'/lapak',rows:[row('Olahan hasil laut (ikan asin, terasi, kerupuk)',14,'usaha'),row('Makanan & minuman',12,'usaha'),row('Kerajinan',6,'usaha'),row('Jasa',4,'usaha')]}
+];}
 export const siteSeed = {
   name:'Marga Mulya', identity:'Desa Marga Mulya', area:'Portal informasi & kegiatan masyarakat',
   heroTitle:'Kenali desanya.\nTemukan ceritanya.',
   heroText:'Kabar masyarakat, agenda bersama, dan hasil usaha warga Desa Marga Mulya dalam satu tempat.',
-  heroImage:'/images/hero.webp', heroCaption:'Lanskap perdesaan di Jawa · foto ilustrasi',
+  heroImage:'/images/pesisir-tangerang.jpg', heroCaption:'Perahu nelayan di pesisir Tangerang (Pantai Tanjung Pasir) · foto ilustrasi',
+  homeProfileTitle:'Desa pesisir di utara Mauk', regionLines:'Kecamatan Mauk\nKabupaten Tangerang\nProvinsi Banten', weatherPlace:'Mauk, Tangerang',
+  tourismIntro:'Pantai-pantai di pesisir Tanjung Kait, Desa Marga Mulya.', marketIntro:'Kenali produk dan usaha yang tumbuh di lingkungan kita.',
+  mapIntro:'Pantai, sekolah, tempat ibadah, layanan kesehatan, dan keamanan di sekitar desa.', projectsIntro:'Kegiatan pembangunan desa beserta anggaran dan progresnya.',
   about:'Desa Marga Mulya menjadi ruang tumbuh bagi masyarakat, kegiatan bersama, dan usaha lokal. Melalui portal ini, warga dapat mengenal profil desa, mengikuti agenda, serta memperkenalkan produk yang mereka hasilkan.',
   history:'Profil ini merupakan contoh pengisian berdasarkan struktur data panitia EcoQuest. Riwayat pembentukan desa, asal nama, dan peristiwa penting dapat dilengkapi oleh pemerintah desa melalui pengelolaan konten.',
   vision:'Terwujudnya masyarakat desa yang mandiri, sejahtera, dan berdaya melalui pelayanan yang terbuka serta pengembangan potensi lokal.',
@@ -13,7 +36,7 @@ export const siteSeed = {
   hours:'Senin–Jumat, 08.00–15.00 (contoh jadwal)', timezone:'Asia/Jakarta',
   footer:'Informasi terbuka, kegiatan bersama, dan ruang tumbuh usaha warga.',
   demo:true, demoNote:'Versi demonstrasi EcoQuest. Isi, angka, nama usaha, dan agenda adalah contoh; foto merupakan ilustrasi.',
-  nav:{home:'Beranda',profil:'Profil desa',informasi:'Informasi',agenda:'Agenda',lapak:'Lapak desa',galeri:'Galeri',kontak:'Kontak',wisata:'Wisata',"peta-desa":'Peta Desa',pembangunan:'Pembangunan',bantuan:'Bantuan Desa',pengaduan:'Layanan warga'},
+  nav:{home:'Beranda',profil:'Profil desa',informasi:'Informasi',agenda:'Agenda',lapak:'Lapak desa',galeri:'Galeri',kontak:'Kontak',wisata:'Wisata',"peta-desa":'Peta Desa',pembangunan:'Pembangunan',bantuan:'Bantuan Desa',pengaduan:'Layanan warga',transparansi:'Transparansi'},
   pages:{
     profil:{eyebrow:'Mengenal desa',title:'Profil desa',intro:'Identitas, arah pembangunan, dan data masyarakat.'},
     informasi:{eyebrow:'Kabar & pengumuman',title:'Informasi desa',intro:'Ikuti kabar, kegiatan, dan pengumuman yang diterbitkan pengelola desa.'},
@@ -25,15 +48,18 @@ export const siteSeed = {
     "peta-desa":{eyebrow:'Wisata & fasilitas umum',title:'Peta desa',intro:'Geser dan perbesar peta, pilih kategori, lalu ketuk penanda untuk melihat alamat dan petunjuk arah.'},
     pembangunan:{eyebrow:'Transparansi desa',title:'Pembangunan desa',intro:'Kegiatan pembangunan, anggaran, sumber dana, dan progres pelaksanaannya.'},
     bantuan:{eyebrow:'Transparansi desa',title:'Bantuan desa',intro:'Program bantuan sosial, status penyaluran, dan dokumentasinya. Data pribadi penerima tidak ditampilkan.'},
-    pengaduan:{eyebrow:'Layanan warga',title:'Apa yang bisa kami bantu?',intro:'Cari jawaban pada pertanyaan umum. Jika belum terjawab, tanyakan Asisten Desa atau kirim pengaduan.'}
+    pengaduan:{eyebrow:'Layanan warga',title:'Apa yang bisa kami bantu?',intro:'Cari jawaban pada pertanyaan umum. Jika belum terjawab, tanyakan Asisten Desa atau kirim pengaduan.'},
+    transparansi:{eyebrow:'Transparansi desa',title:'Pembangunan & bantuan',intro:'Kegiatan pembangunan dan program bantuan sosial desa, lengkap dengan anggaran, progres, dan dokumentasi.'}
   },
-  labels:{news:'Kabar dari desa',agenda:'Agenda terdekat',market:'Dari tangan warga',stats:'Desa dalam angka',gallery:'Galeri desa',vision:'Visi desa',mission:'Misi desa',tourism:'Wisata pesisir Marga Mulya',projects:'Pembangunan terbaru',map:'Peta wisata & fasilitas'},
+  labels:{news:'Kabar dari desa',agenda:'Agenda terdekat',market:'Dari tangan warga',stats:'Desa dalam angka',gallery:'Galeri desa',vision:'Visi desa',mission:'Misi desa',tourism:'Wisata pesisir Marga Mulya',projects:'Pembangunan terbaru',map:'Peta wisata & fasilitas',latestNews:'Berita terbaru'},
   stats:[{label:'Penduduk',value:'2.846',unit:'jiwa'},{label:'Kepala keluarga',value:'842',unit:'KK'},{label:'Wilayah dusun',value:'4',unit:'dusun'},{label:'Usaha lokal',value:'36',unit:'usaha'}],
   population:[{label:'Usia 0–14 tahun',value:672},{label:'Usia 15–64 tahun',value:1874},{label:'Usia 65+ tahun',value:300}],
-  occupations:[{label:'Pertanian',value:40},{label:'Wiraswasta',value:27},{label:'Karyawan',value:21},{label:'Lainnya',value:12}],
+  occupations:[{label:'Nelayan & tambak',value:31},{label:'Pertanian',value:22},{label:'Wiraswasta / UMKM',value:19},{label:'Karyawan swasta',value:16},{label:'Lainnya',value:12}],
+  dataSections:dataSections(),
   dataPeriod:'2026 · data demonstrasi', dataSource:'Contoh sesuai struktur dokumen Data Desa Marga Mulya — EcoQuest',
   sourceUrl:'https://www.canva.com/design/DAHUOBlDerM/XZha5NlhvEsz6u4cI7wcgQ/view',
   credits:[
+    {title:'Perahu nelayan di Pantai Tanjung Pasir, Tangerang',author:'Banacama',source:'https://commons.wikimedia.org/wiki/File:Pantai_Tanjung_Pasir.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'},
     {title:'Persawahan di Jawa',author:'Thomas Fuhrmann',source:'https://commons.wikimedia.org/wiki/File:Rice_terraces_in_Java_-_Indonesia.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'},
     {title:'Sayuran Indonesia',author:'Midori',source:'https://commons.wikimedia.org/wiki/File:Indonesian_vegetables.JPG',license:'CC BY-SA 3.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/3.0/'},
     {title:'Beras',author:'Sanjay Acharya',source:'https://commons.wikimedia.org/wiki/File:Unpolished-rice.jpg',license:'CC BY-SA 3.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/3.0/'},

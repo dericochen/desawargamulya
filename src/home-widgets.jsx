@@ -4,7 +4,7 @@ import {Sun,Moon,CloudSun,Cloud,CloudFog,CloudDrizzle,CloudRain,CloudLightning,D
 import {Link,Modal,Picture,openAssistant,openEmergency,dateLabel} from './lib.jsx';
 
 export function QuickAccess({site}){
-  const items=[[Megaphone,'Pengaduan','/pengaduan'],[MessageCircle,'Tanya Desa',openAssistant],[TreePalm,site.nav.wisata||'Wisata','/wisata'],[HardHat,site.nav.pembangunan||'Pembangunan','/pembangunan'],[MapIcon,site.nav['peta-desa']||'Peta Desa','/peta-desa'],[PhoneCall,'Darurat',openEmergency]];
+  const items=[[Megaphone,'Pengaduan','/pengaduan'],[MessageCircle,'Tanya Desa',openAssistant],[TreePalm,site.nav.wisata||'Wisata','/wisata'],[HardHat,site.nav.pembangunan||'Pembangunan','/transparansi?tab=pembangunan'],[MapIcon,site.nav['peta-desa']||'Peta Desa','/peta-desa'],[PhoneCall,'Darurat',openEmergency]];
   return <nav className="container quick-access" aria-label="Akses cepat layanan">{items.map(([Icon,label,to])=>typeof to==='string'
     ?<Link key={label} href={to}><Icon aria-hidden="true"/><span>{label}</span></Link>
     :<button key={label} className={label==='Darurat'?'is-emergency':''} onClick={()=>to()}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>;
@@ -22,7 +22,7 @@ function describe(code,isDay=1){
   if(code>=95)return ['Badai petir',CloudLightning];
   return ['Berawan',Cloud];
 }
-export function Weather({lat,lng,timeZone}){
+export function Weather({lat,lng,timeZone,place=''}){
   const [state,setState]=useState({status:'loading'});
   useEffect(()=>{
     const key='mm_weather_'+lat+','+lng;
@@ -33,14 +33,14 @@ export function Weather({lat,lng,timeZone}){
     return()=>{ctrl.abort();clearTimeout(timer);};
   },[lat,lng,timeZone]);
   if(state.status==='loading')return <aside className="weather-card" aria-busy="true"><h3>Cuaca Marga Mulya</h3><div className="skeleton weather-skeleton"/><p className="small muted">Memuat data cuaca…</p></aside>;
-  if(state.status==='error')return <aside className="weather-card"><h3><Cloud size={18} aria-hidden="true"/>Cuaca Marga Mulya</h3><p className="weather-error">Data cuaca sementara tidak tersedia.</p><p className="small muted">Mauk, Tangerang</p></aside>;
+  if(state.status==='error')return <aside className="weather-card"><h3><Cloud size={18} aria-hidden="true"/>Cuaca Marga Mulya</h3><p className="weather-error">Data cuaca sementara tidak tersedia.</p><p className="small muted">{place}</p></aside>;
   const {current:c,daily:d}=state.data,[label,Icon]=describe(c.weather_code,c.is_day);
   return <aside className="weather-card" aria-labelledby="weather-title">
     <h3 id="weather-title"><Icon size={18} aria-hidden="true"/>Cuaca Marga Mulya</h3>
     <div className="weather-now"><strong>{Math.round(c.temperature_2m)}°C</strong><span>{label}</span></div>
     <div className="weather-meta"><span><Droplets size={16} aria-hidden="true"/>Kelembapan {c.relative_humidity_2m}%</span><span><Wind size={16} aria-hidden="true"/>Angin {Math.round(c.wind_speed_10m)} km/jam</span></div>
     <ul className="weather-days">{d.time.slice(0,3).map((day,i)=>{const [l,DayIcon]=describe(d.weather_code[i]);return <li key={day}><span>{['Hari ini','Besok','Lusa'][i]}</span><DayIcon size={18} aria-label={l}/><span>{Math.round(d.temperature_2m_max[i])}° / {Math.round(d.temperature_2m_min[i])}°</span>{d.precipitation_probability_max?.[i]!=null&&<span className="rain"><Umbrella size={13} aria-hidden="true"/>{d.precipitation_probability_max[i]}%</span>}</li>;})}</ul>
-    <p className="small muted">Mauk, Tangerang · Sumber: Open-Meteo</p>
+    <p className="small muted">{place&&place+' · '}Sumber: Open-Meteo</p>
   </aside>;
 }
 

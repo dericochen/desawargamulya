@@ -76,7 +76,7 @@ const options=[
   opt('bot-complaint',7,'Lainnya','goto','bot-handover'),
   opt('bot-services',1,'Surat domisili','goto','bot-domisili'),opt('bot-services',2,'Surat pengantar','goto','bot-pengantar'),
   opt('bot-services',3,'Jam & lokasi pelayanan','goto','bot-jam'),opt('bot-services',4,'Pertanyaan lain','goto','bot-handover'),
-  opt('bot-aid',1,'Lihat program bantuan desa','link',null,'/bantuan'),opt('bot-aid',2,'Cara mengetahui status penerima','goto','bot-aid-status'),
+  opt('bot-aid',1,'Lihat program bantuan desa','link',null,'/transparansi?tab=bantuan'),opt('bot-aid',2,'Cara mengetahui status penerima','goto','bot-aid-status'),
   opt('bot-aid',3,'Laporkan masalah bantuan','complaint',null,'Bantuan Sosial'),opt('bot-aid',4,'Hubungi admin','goto','bot-handover'),
   opt('bot-tourism',1,'Daftar wisata desa','link',null,'/wisata'),opt('bot-tourism',2,'Peta wisata & fasilitas','link',null,'/peta-desa')
 ];

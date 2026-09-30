@@ -46,6 +46,10 @@ async function persistImage(value,recordId){
   }
   const match=value.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
   if(!match)return value;
+  // Uploaded images live in the database; keep total usage below the free database plan (configurable).
+  const limit=Number(process.env.MEDIA_LIMIT_MB||300)*1024*1024;
+  const used=Number((await query('SELECT COALESCE(SUM(LENGTH(content)),0) AS total FROM media'))[0].total);
+  if(used+match[2].length>limit)throw fail('Ruang penyimpanan foto hampir penuh. Hapus foto lama yang tidak dipakai, lalu coba lagi.',507);
   const id=randomUUID();await query('INSERT INTO media(id,record_id,mime,content) VALUES(?,?,?,?)',[id,recordId,match[1],match[2]]);
   return '/api/media/'+id;
 }
@@ -109,7 +113,7 @@ app.post('/api/logout',async(req,res)=>{await query('DELETE FROM sessions WHERE 
 app.get('/api/admin/content',auth,async(req,res)=>res.json((await query("SELECT * FROM records WHERE kind IN ('site','article','event','product','gallery') ORDER BY updated_at DESC")).map(parseRow)));
 app.put('/api/admin/site',auth,async(req,res)=>{
   const current=await getRecord('site');const d={...current};delete d.id;delete d.kind;delete d.status;delete d.updatedAt;
-  const strings=['name','identity','area','heroTitle','heroText','heroCaption','about','history','vision','missions','geography','address','phone','email','mapUrl','hours','timezone','footer','demoNote','dataPeriod','dataSource','sourceUrl'];
+  const strings=['name','identity','area','heroTitle','heroText','heroCaption','about','history','vision','missions','geography','address','phone','email','mapUrl','hours','timezone','footer','demoNote','dataPeriod','dataSource','sourceUrl','homeProfileTitle','regionLines','weatherPlace','tourismIntro','marketIntro','mapIntro','projectsIntro'];
   for(const k of strings)if(k in req.body)d[k]=clean(req.body[k],12000);
   if(!d.name||!d.heroTitle||!d.about)throw fail('Nama desa, judul utama, dan profil wajib diisi.');
   try{new Intl.DateTimeFormat('id-ID',{timeZone:d.timezone});}catch{throw fail('Zona waktu tidak valid.');}
@@ -122,6 +126,18 @@ app.put('/api/admin/site',auth,async(req,res)=>{
     d[k]=req.body[k].slice(0,12).map(r=>({label:clean(r.label,100),value:k==='stats'?clean(String(r.value),30):Math.max(0,Number(r.value)||0),...(k==='stats'?{unit:clean(r.unit,30)}:{})}));
   }
   for(const k of ['productCategories','eventCategories'])if(Array.isArray(req.body[k]))d[k]=req.body[k].map(s=>clean(s,60)).filter(Boolean).slice(0,20);
+  if(Array.isArray(req.body.dataSections)){
+    if(req.body.dataSections.length>24)throw fail('Maksimal 24 kelompok data desa.');
+    d.dataSections=req.body.dataSections.map(s=>{
+      const section={code:clean(s.code,4).toUpperCase(),title:clean(s.title,120),chart:s.chart==='bar'?'bar':'table',note:clean(s.note,300),link:clean(s.link,120)};
+      if(!section.title)throw fail('Setiap kelompok data desa wajib memiliki judul.');
+      if(section.link&&!/^\/[a-z0-9\-/?=&]*$/i.test(section.link))throw fail('Tautan kelompok data harus alamat internal, misalnya /wisata.');
+      if(!Array.isArray(s.rows)||s.rows.length>40)throw fail('Setiap kelompok data berisi maksimal 40 baris.');
+      section.rows=s.rows.map(r=>({label:clean(r.label,120),value:clean(String(r.value??''),60),unit:clean(r.unit,30)})).filter(r=>r.label);
+      if(section.chart==='bar'&&section.rows.some(r=>!Number.isFinite(Number(r.value.replace(/\./g,'').replace(',','.')))))throw fail(`Grafik “${section.title}” hanya menerima angka pada kolom nilai.`);
+      return section;
+    });
+  }
   if(Array.isArray(req.body.credits))d.credits=req.body.credits.slice(0,30).map(r=>{const c={};for(const k of ['title','author','source','license','licenseUrl'])c[k]=clean(r[k],500);for(const k of ['source','licenseUrl'])if(c[k]&&!/^https:\/\//.test(c[k]))throw fail('Tautan sumber dan lisensi harus menggunakan HTTPS.');return c;});
   const saved=await putRecord('site','site','published',d);
   await pruneMedia('site',[saved.heroImage]);

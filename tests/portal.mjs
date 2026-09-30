@@ -98,6 +98,22 @@ export async function checkPortal(t,request){
     assert.equal((await request('/portal/aid/bantuan-contoh-1/recipients')).status,404);
     assert.equal((await request('/portal')).data.aid[0].distribution['Sudah disalurkan'],2);
   });
+  await t.test('Village data A–M and homepage texts are CMS-managed; no religion data',async()=>{
+    const site=(await request('/content')).data.site;
+    assert.deepEqual([...new Set(site.dataSections.map(s=>s.code))],['A','B','C','E','F','G','H','I','J','K','L','M']);
+    assert.equal(/agama|pemeluk/i.test(JSON.stringify(site.dataSections)),false,'no SARA-related data');
+    assert.equal(site.homeProfileTitle,'Desa pesisir di utara Mauk');assert.equal(site.heroImage,'/images/pesisir-tangerang.jpg');
+    const bad=structuredClone(site.dataSections);bad.find(s=>s.chart==='bar').rows[0].value='banyak';
+    assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{dataSections:bad}})).status,400);
+    assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{dataSections:[{code:'x',title:'Luar',chart:'table',link:'https://evil.example',rows:[]}]}})).status,400);
+    const next=structuredClone(site.dataSections);next[0].rows[0].value='450';
+    assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{dataSections:next,homeProfileTitle:'Judul dari CMS',regionLines:'Kecamatan Uji'}})).status,200);
+    const saved=(await request('/content')).data.site;assert.equal(saved.dataSections[0].rows[0].value,'450');assert.equal(saved.homeProfileTitle,'Judul dari CMS');assert.equal(saved.regionLines,'Kecamatan Uji');
+    const sum=(await request('/admin/summary',{admin:true})).data;assert.equal(typeof sum.storage.usedMB,'number');assert.equal(sum.storage.limitMB,300);
+    process.env.MEDIA_LIMIT_MB='0.001';
+    try{assert.equal((await request('/admin/portal/tourism_gallery',{method:'POST',admin:true,body:{tourism_id:'wisata-pasir-putih',image_url:photo}})).status,507,'uploads stop when storage quota is reached');}
+    finally{delete process.env.MEDIA_LIMIT_MB;}
+  });
   await t.test('Project documentation and gallery ordering',async()=>{
     const u=await request('/admin/portal/project_updates',{method:'POST',admin:true,body:{project_id:'proyek-contoh-1',date:'2026-09-30',title:'Foto sesudah',phase:'selesai',image_url:photo}});assert.equal(u.status,201);
     assert.equal((await request(u.data.image_url.slice(4))).status,200);

@@ -1,7 +1,7 @@
 // Public Portal Desa pages: tourism, village map, development projects, social aid and global search.
 import React,{useEffect,useMemo,useState} from 'react';
 import {MapPin,Navigation,Phone,Clock,Ticket,ListChecks,Images,Search,Map as MapIcon,CalendarDays,Wallet,Landmark,HardHat,HeartHandshake,CircleHelp,Newspaper,Building2,ShieldCheck,ChevronLeft,ChevronRight} from 'lucide-react';
-import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate} from './lib.jsx';
+import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs} from './lib.jsx';
 import {mapFilters,facilityCategories} from '../server/portal-schema.mjs';
 
 const categoryLabel=Object.fromEntries(facilityCategories.map(([k,l,e])=>[k,e+' '+l]));
@@ -10,7 +10,7 @@ function useDetail(items,key='id'){
   const find=()=>items.find(x=>x[key]===param('lihat'))||null;
   const [selected,setSelected]=useState(find);
   useEffect(()=>{setSelected(find());},[location.search,items]);
-  return [selected,item=>{navigate(location.pathname+(item?'?lihat='+encodeURIComponent(item[key]):''));}];
+  return [selected,item=>{const p=new URLSearchParams(location.search);item?p.set('lihat',item[key]):p.delete('lihat');const q=p.toString();navigate(location.pathname+(q?'?'+q:''));}];
 }
 const Fact=({icon:Icon,label,children})=><div className="fact"><Icon aria-hidden="true"/><div><dt>{label}</dt><dd>{children}</dd></div></div>;
 
@@ -90,10 +90,10 @@ function ProjectDetail({project:p,onClose}){
     {p.updates.length?<ol className="timeline">{p.updates.map(u=><li key={u.id} className="done"><span className="timeline-dot" aria-hidden="true"/><div><time>{dateLabel(u.date)}</time><strong>{u.title}{u.progress>0&&` · ${u.progress}%`}</strong>{u.note&&<p>{u.note}</p>}</div></li>)}</ol>:<p className="small muted">Belum ada catatan progres.</p>}
   </Modal>;
 }
-export function Development({data}){
+export function Development({data,embedded}){
   const all=data.portal.projects,[status,setStatus]=useState('Semua'),[year,setYear]=useState('Semua'),[selected,select]=useDetail(all);
   const list=all.filter(p=>(status==='Semua'||p.status===status)&&(year==='Semua'||String(p.year)===year));
-  return <><PageIntro {...data.site.pages.pembangunan}>{data.site.pages.pembangunan.intro}</PageIntro>
+  return <>{embedded?<p className="hub-intro-text">{data.site.pages.pembangunan.intro}</p>:<PageIntro {...data.site.pages.pembangunan}>{data.site.pages.pembangunan.intro}</PageIntro>}
     <div className="filter-bar"><select aria-label="Status pembangunan" value={status} onChange={e=>setStatus(e.target.value)}>{['Semua','Direncanakan','Berjalan','Selesai','Ditunda'].map(s=><option key={s} value={s}>{s==='Semua'?'Semua status':s}</option>)}</select><select aria-label="Tahun" value={year} onChange={e=>setYear(e.target.value)}>{['Semua',...new Set(all.map(p=>String(p.year)))].map(y=><option key={y} value={y}>{y==='Semua'?'Semua tahun':y}</option>)}</select><span className="result-count">{list.length} kegiatan</span></div>
     {list.length?<div className="project-grid">{list.map(p=><ProjectCard key={p.id} project={p} onDetail={select}/>)}</div>:<Empty title="Belum ada kegiatan pembangunan" text="Coba ubah filter status atau tahun."/>}
     {data.site.demo&&<div className="subtle-note"><ShieldCheck size={18}/><p>Kegiatan bertanda “(contoh)” adalah data demonstrasi, bukan laporan resmi desa.</p></div>}
@@ -124,27 +124,37 @@ function AidDetail({program:p,areas,onClose}){
     {p.show_recipients?<Recipients program={p} areas={areas}/>:<p className="small muted">Daftar penerima program ini tidak dipublikasikan.</p>}
   </Modal>;
 }
-export function Aid({data}){
+export function Aid({data,embedded}){
   const list=data.portal.aid,[selected,select]=useDetail(list);
-  return <><PageIntro {...data.site.pages.bantuan}>{data.site.pages.bantuan.intro}</PageIntro>
+  return <>{embedded?<p className="hub-intro-text">{data.site.pages.bantuan.intro}</p>:<PageIntro {...data.site.pages.bantuan}>{data.site.pages.bantuan.intro}</PageIntro>}
     <h2 className="section-title">Program bantuan</h2>
     {list.length?<div className="aid-grid">{list.map(p=><button key={p.id} className="aid-card" onClick={()=>select(p)}><HeartHandshake aria-hidden="true"/><div><h3>{p.name}</h3><p>{p.year} · {p.funding_source||'Sumber dana belum diumumkan'}</p><p><strong>{p.recipient_count?numberLabel(p.recipient_count)+' penerima':'Jumlah penerima belum diumumkan'}</strong></p></div><span className="status">{p.status}</span></button>)}</div>:<Empty title="Belum ada program bantuan yang diumumkan"/>}
     <div className="subtle-note"><ShieldCheck size={18}/><p>Untuk memastikan status bantuan pribadi, datang ke Kantor Desa dengan membawa KTP. Website tidak meminta atau menampilkan NIK.</p></div>
     {selected&&<AidDetail program={selected} areas={data.portal.areas} onClose={()=>select(null)}/>}</>;
 }
 
-export function SearchPage({data}){
-  const [q,setQ]=useState(param('q'));useEffect(()=>setQ(param('q')),[location.search]);
+export function Transparency({data}){
+  const tab=param('tab')==='bantuan'?'bantuan':'pembangunan',s=data.site;
+  return <><PageIntro {...s.pages.transparansi}>{s.pages.transparansi.intro}</PageIntro><HubTabs label="Bagian transparansi" active={tab} tabs={[['pembangunan',s.nav.pembangunan||'Pembangunan'],['bantuan',s.nav.bantuan||'Bantuan desa']]}/><div id="hub-panel" role="tabpanel" aria-labelledby={'hub-tab-'+tab}>{tab==='bantuan'?<Aid data={data} embedded/>:<Development data={data} embedded/>}</div></>;
+}
+
+// Global search opens as a dialog from the header (not a separate page).
+export function SearchDialog({data}){
+  const [open,setOpen]=useState(false),[q,setQ]=useState('');
+  useEffect(()=>{const f=e=>{setQ(e.detail?.q||'');setOpen(true);};window.addEventListener('mm:search',f);if(window.__mmPendingSearch){setQ(window.__mmPendingSearch.trim());setOpen(true);delete window.__mmPendingSearch;}return()=>window.removeEventListener('mm:search',f);},[]);
+  if(!open)return null;
   const term=q.trim().toLowerCase(),has=(...v)=>v.join(' ').toLowerCase().includes(term),p=data.portal;
   const groups=term.length<2?[]:[
     ['Berita & pengumuman',Newspaper,data.articles.filter(a=>has(a.title,a.excerpt,a.body,a.category)).map(a=>({id:a.id,title:a.title,text:a.category+' · '+dateLabel(a.date),href:'/informasi?baca='+a.id}))],
+    ['Agenda kegiatan',CalendarDays,data.events.filter(e=>has(e.title,e.description,e.location,e.category)).map(e=>({id:e.id,title:e.title,text:dateLabel(e.date)+' · '+e.location,href:'/informasi?tab=agenda&lihat='+e.id}))],
     ['Wisata',MapPin,p.tourism.filter(t=>has(t.name,t.description,t.address,t.category)).map(t=>({id:t.id,title:t.name,text:t.address,href:'/wisata?lihat='+t.slug}))],
-    ['Pembangunan',HardHat,p.projects.filter(x=>has(x.title,x.description,x.location,x.area_name)).map(x=>({id:x.id,title:x.title,text:x.status+' · '+x.year,href:'/pembangunan?lihat='+x.id}))],
-    ['Bantuan desa',HeartHandshake,p.aid.filter(x=>has(x.name,x.description)).map(x=>({id:x.id,title:x.name,text:x.status+' · '+x.year,href:'/bantuan?lihat='+x.id}))],
+    ['Pembangunan',HardHat,p.projects.filter(x=>has(x.title,x.description,x.location,x.area_name)).map(x=>({id:x.id,title:x.title,text:x.status+' · '+x.year,href:'/transparansi?tab=pembangunan&lihat='+x.id}))],
+    ['Bantuan desa',HeartHandshake,p.aid.filter(x=>has(x.name,x.description)).map(x=>({id:x.id,title:x.name,text:x.status+' · '+x.year,href:'/transparansi?tab=bantuan&lihat='+x.id}))],
     ['Pertanyaan umum (FAQ)',CircleHelp,p.faqs.filter(f=>has(f.question,f.answer)).map(f=>({id:f.id,title:f.question,text:f.answer.slice(0,120)+(f.answer.length>120?'…':''),href:'/pengaduan?faq='+f.id}))],
     ['Fasilitas umum',Building2,p.facilities.filter(f=>has(f.name,f.address,categoryLabel[f.category])).map(f=>({id:f.id,title:f.name,text:categoryLabel[f.category]+' · '+f.address,href:'/peta-desa?lokasi='+f.id}))]
   ].filter(g=>g[2].length);
-  return <><PageIntro eyebrow="Pencarian" title="Cari di website desa"/>
-    <form role="search" className="search-page-form" onSubmit={e=>{e.preventDefault();navigate('/cari?q='+encodeURIComponent(q.trim()));}}><div className="search-field"><Search/><input autoFocus aria-label="Kata kunci pencarian" placeholder="Contoh: pantai, surat domisili, drainase…" value={q} onChange={e=>setQ(e.target.value)}/></div><button className="button">Cari</button></form>
-    {term.length<2?<p className="muted">Ketik minimal 2 huruf untuk mencari berita, pengumuman, wisata, pembangunan, FAQ, dan fasilitas umum.</p>:groups.length?<div className="search-results" aria-live="polite">{groups.map(([title,Icon,items])=><section key={title}><h2><Icon aria-hidden="true"/>{title} <span>({items.length})</span></h2><ul>{items.map(i=><li key={i.id}><Link href={i.href}><strong>{i.title}</strong><span>{i.text}</span></Link></li>)}</ul></section>)}</div>:<Empty title="Tidak ditemukan" text="Coba kata kunci lain, atau tanyakan melalui Tanya Desa."/>}</>;
+  const close=()=>setOpen(false);
+  return <Modal title="Cari di website desa" wide onClose={close} className="search-dialog">
+    <form role="search" className="search-page-form" onSubmit={e=>e.preventDefault()}><div className="search-field"><Search/><input autoFocus aria-label="Kata kunci pencarian" placeholder="Contoh: pantai, surat domisili, drainase…" value={q} onChange={e=>setQ(e.target.value)}/></div></form>
+    {term.length<2?<p className="muted">Ketik minimal 2 huruf untuk mencari berita, pengumuman, wisata, pembangunan, FAQ, dan fasilitas umum.</p>:groups.length?<div className="search-results" aria-live="polite">{groups.map(([title,Icon,items])=><section key={title}><h2><Icon aria-hidden="true"/>{title} <span>({items.length})</span></h2><ul>{items.map(i=><li key={i.id}><Link href={i.href} onClick={close}><strong>{i.title}</strong><span>{i.text}</span></Link></li>)}</ul></section>)}</div>:<Empty title="Tidak ditemukan" text="Coba kata kunci lain, atau tanyakan melalui Tanya Desa."/>}</Modal>;
 }

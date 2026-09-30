@@ -72,9 +72,12 @@ async function migratePortal(){
 // Brings an existing site record up to date with new menu keys/pages and fills placeholders with verified location data.
 function upgradeSite(site){
   let changed=false;
-  for(const k of ['credits','pages'])if(!site[k]){site[k]=structuredClone(siteSeed[k]);changed=true;}
+  // Any new top-level setting (e.g. dataSections, homepage texts) is filled from the seed; existing admin values are never overwritten.
+  for(const [k,v] of Object.entries(siteSeed))if(site[k]===undefined){site[k]=structuredClone(v);changed=true;}
   for(const k of ['nav','labels','pages'])for(const [key,value] of Object.entries(siteSeed[k]))if(!(key in site[k])){site[k][key]=structuredClone(value);changed=true;}
-  for(const k of ['villageLat','villageLng','officeLat','officeLng'])if(typeof site[k]!=='number'){site[k]=siteSeed[k];changed=true;}
+  // Replace untouched demo defaults that no longer fit a coastal village.
+  if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;changed=true;}
+  if(JSON.stringify(site.occupations)==='[{"label":"Pertanian","value":40},{"label":"Wiraswasta","value":27},{"label":"Karyawan","value":21},{"label":"Lainnya","value":12}]'){site.occupations=structuredClone(siteSeed.occupations);changed=true;}
   if(site.address==='Alamat kantor desa belum dikonfirmasi'){site.address=siteSeed.address;changed=true;}
   if(!site.mapUrl){site.mapUrl=siteSeed.mapUrl;changed=true;}
   if(site.geography?.startsWith('Data batas wilayah, luas desa')){site.geography=siteSeed.geography;changed=true;}

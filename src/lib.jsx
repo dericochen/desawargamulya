@@ -31,6 +31,10 @@ export const navigate=href=>{history.pushState(null,'',href);window.dispatchEven
 // Global sheets (emergency numbers, village assistant) are opened from many places via window events.
 export const openEmergency=()=>window.dispatchEvent(new Event('mm:emergency'));
 export const openAssistant=(detail={})=>window.dispatchEvent(new CustomEvent('mm:assistant',{detail}));
+export const openSearch=(q='')=>window.dispatchEvent(new CustomEvent('mm:search',{detail:{q}}));
+// Tabs that live inside one public page (keeps the site within the 10-page limit). State is kept in ?tab=.
+export function HubTabs({tabs,active,label}){return <div className="tabs hub-tabs" role="tablist" aria-label={label}>{tabs.map(([k,l])=><button key={k} role="tab" id={'hub-tab-'+k} aria-selected={active===k} aria-controls="hub-panel" onClick={()=>{if(active!==k)navigate(location.pathname+'?tab='+k);}}>{l}</button>)}</div>;}
+export const isActiveHref=(href,path)=>{const [p,q]=href.split('?');if(p!==path)return false;if(!q)return !new URLSearchParams(location.search).get('tab');const want=new URLSearchParams(q),have=new URLSearchParams(location.search);return [...want].every(([k,v])=>have.get(k)===v);};
 export const telHref=phone=>'tel:'+String(phone).replace(/[^\d+]/g,'');
 export const directionsUrl=(lat,lng)=>`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 export const numberLabel=n=>new Intl.NumberFormat('id-ID').format(n||0);
