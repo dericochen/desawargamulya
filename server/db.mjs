@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {randomBytes,scryptSync,timingSafeEqual,createHash} from 'node:crypto';
 import {seedRecords,siteSeed} from './seed.mjs';
 import {portalDDL,SCHEMA_VERSION,extraImageColumns,homeSectionKeys,legacyHomeOrder} from './portal-schema.mjs';
-import {portalSeed,approxNote} from './portal-seed.mjs';
+import {portalSeed,approxNote,officialSchools} from './portal-seed.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 let queryFn; let transactionFn; let ready; let closeFn=()=>{};
 // Releases the local SQLite file handle (used by tests so the temp folder can be deleted on Windows).
@@ -41,6 +41,7 @@ export async function init(){
     if(!existing.length){for(const r of seedRecords())await queryFn('INSERT INTO records (id,kind,status,data,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING',[r.id,r.kind,r.status,JSON.stringify(r.data),new Date().toISOString()]);await queryFn('INSERT INTO records (id,kind,status,data,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING',['__seeded','system','private','{}',new Date().toISOString()]);}
     await migratePortal();
     await cleanupPortalContent();
+    await addOfficialSchools();
     const siteRows=await queryFn("SELECT data FROM records WHERE id='site'");
     if(siteRows.length){const site=JSON.parse(siteRows[0].data);if(upgradeSite(site))await queryFn("UPDATE records SET data=? WHERE id='site'",[JSON.stringify(site)]);}
     const auth=await queryFn("SELECT data FROM records WHERE id='__auth'");
@@ -74,6 +75,17 @@ async function migratePortal(){
     await queryFn(`INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(()=>'?').join(',')}) ON CONFLICT(id) DO NOTHING`,[...Object.values(row),now,now]);
   }
   await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_seeded','system','private','{}',?) ON CONFLICT(id) DO NOTHING",[now]);
+}
+// One-time data update (2026-10-01): schools from the official Kemendikdasmen reference data. Existing seeded rows
+// are refreshed only while they still carry the demo note; new schools are inserted if missing.
+async function addOfficialSchools(){
+  if((await queryFn("SELECT id FROM records WHERE id='__portal_rev5'")).length)return;
+  const now=new Date().toISOString();
+  for(const [id,name,category,address,latitude,longitude,phone,image_url,description] of officialSchools){
+    await queryFn('INSERT INTO public_facilities (id,name,category,description,address,latitude,longitude,phone,opening_hours,image_url,is_active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,1,?,?) ON CONFLICT(id) DO NOTHING',[id,name,category,description,address,latitude,longitude,phone,'',image_url,now,now]);
+    await queryFn('UPDATE public_facilities SET name=?,address=?,latitude=?,longitude=?,description=?,updated_at=? WHERE id=? AND description=?',[name,address,latitude,longitude,description,now,id,approxNote]);
+  }
+  await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_rev5','system','private','{}',?) ON CONFLICT(id) DO NOTHING",[now]);
 }
 // One-time content fix (2026-09-30): no places of worship on the public map (SARA rule) and no
 // "Google Maps" source notes; demo coordinates/phones are labelled as approximate instead.

@@ -2,6 +2,13 @@
 // verified by the village government before real use. Unknown facts (tickets, hours, facilities) are left
 // empty on purpose so the website shows "Informasi belum tersedia" instead of invented values.
 // Places of worship are intentionally not seeded (competition rule: no SARA-related content).
+// Schools come from the official Kemendikdasmen reference data (NPSN pages, coordinates as registered).
+export const officialSchools=[
+  ['fas-sdn','SD Negeri Margamulya','sekolah','Kp. Bebulak, Desa Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.0405,106.524,'','','Sekolah dasar negeri. Sumber: Data Referensi Kemendikdasmen, NPSN 20603025.'],
+  ['fas-sd-ketapang','SD Negeri Ketapang','sekolah','Jl. Raya Tanjung Kait, Desa Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.0434,106.5033,'','','Sekolah dasar negeri. Sumber: Data Referensi Kemendikdasmen, NPSN 20603078 (titik sesuai data terdaftar).'],
+  ['fas-mis-raudhatul-hidayah','MIS Raudhatul Hidayah 2','sekolah','Kp. Bebulak, Desa Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.0401,106.5233,'','','Madrasah ibtidaiyah swasta (setara SD). Sumber: Data Referensi Kemendikdasmen, NPSN 60728724.'],
+  ['fas-paud','KB Al-Fikri','sekolah','Kp. Bebulak RT 04/03, Desa Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.0352,106.5268,'','','Kelompok bermain (PAUD) swasta. Sumber: Data Referensi Kemendikdasmen, NPSN 69882985.']
+];
 export const approxNote='Lokasi perkiraan untuk demonstrasi; perlu diverifikasi pemerintah desa.';
 const source=approxNote;
 export const villageCenter={lat:-6.0353563,lng:106.5260001};
@@ -24,8 +31,7 @@ const facilities=[
   ['fas-apotek-syarah','Apotek Syarah Farma','apotek','Jl. Raya Mauk, Kampung Pasar Sore, Banyu Asih, Kec. Mauk, Kabupaten Tangerang, Banten',-6.060137,106.527054,'','',''],
   ['fas-polsek','Polsek Mauk','polisi','Jl. Oto Iskandardinata No.2, Mauk Timur, Kec. Mauk, Kabupaten Tangerang, Banten',-6.057769,106.514102,'(021) 59330110','',''],
   ['fas-damkar','Pos Pemadam Kebakaran Mauk','pemadam','Ketapang, Kec. Mauk, Kabupaten Tangerang, Banten',-6.054856,106.511524,'(021) 5984343','',''],
-  ['fas-sdn','SDN Margamulya','sekolah','Jl. Kp. Jl. Edison, Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.040389,106.523697,'','',''],
-  ['fas-paud','KB PAUD Al Fikri Margamulya','sekolah','Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.035226,106.526775,'','',''],
+  ...officialSchools.map(s=>s.slice(0,9)),
   ['fas-atm-mandiri','ATM Mandiri','atm','Jl. Raya Tanjung Kait, Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.029698,106.532018,'','',''],
   ['fas-pasar-mauk','Pasar Mauk','lainnya','Mauk Timur, Kec. Mauk, Kabupaten Tangerang, Banten',-6.061234,106.511558,'','',''],
   ['fas-spbu','SPBU Pertamina 34.155.03','spbu','Jl. Raya Mauk Km 17, Kedung Dalem, Kec. Mauk, Kabupaten Tangerang, Banten',-6.075510,106.538380,'(021) 59330508','','SPBU terdekat di jalur Jl. Raya Mauk.']

@@ -111,6 +111,13 @@ export async function checkPortal(t,request){
     const portal=JSON.stringify((await request('/portal')).data);
     assert.equal(/Google Maps/i.test(portal),false,'no Google Maps source notes');
     assert.equal(/masjid|kelenteng|gereja|vihara|"ibadah"/i.test(portal),false,'no places of worship on the public map');
+    const schools=(await request('/portal')).data.facilities.filter(f=>f.category==='sekolah');
+    assert.deepEqual(schools.map(f=>f.name).sort(),['KB Al-Fikri','MIS Raudhatul Hidayah 2','SD Negeri Ketapang','SD Negeri Margamulya']);
+    assert.ok(schools.every(f=>/NPSN \d{8}/.test(f.description)),'schools cite their official NPSN');
+    const field=await request('/admin/portal/public_facilities',{method:'POST',admin:true,body:{name:'Lapangan bulu tangkis (uji)',category:'olahraga',address:'Marga Mulya',latitude:-6.036,longitude:106.526}});
+    assert.equal(field.status,201);
+    assert.equal((await request('/admin/portal/public_facilities',{method:'POST',admin:true,body:{name:'Uji ibadah',category:'ibadah',address:'x',latitude:-6.03,longitude:106.52}})).status,400);
+    await request('/admin/portal/public_facilities/'+field.data.id,{method:'DELETE',admin:true});
     assert.equal(site.homeProfileTitle,'Desa pesisir di utara Mauk');assert.equal(site.backgroundStyle,'budaya');assert.equal(site.heroImage,'/images/pesisir-tangerang.jpg');
     const bad=structuredClone(site.dataSections);bad.find(s=>s.chart==='bar').rows[0].value='banyak';
     assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{dataSections:bad}})).status,400);
