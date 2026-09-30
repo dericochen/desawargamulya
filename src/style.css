@@ -293,3 +293,17 @@ body[data-bg=budaya].decor-ready .section-heading .eyebrow:before{content:"";dis
 @keyframes page-rise{from{transform:translateY(8px)}to{transform:none}}.page-enter{animation:page-rise .45s ease both}
 
 @keyframes hero-rise{from{transform:translateY(16px)}to{transform:none}}.hero-content>*{animation-name:hero-rise}
+
+/* ===== Budaya v2: plain white page covered by a very soft Banten ornament pattern ===== */
+body[data-bg=budaya]{background:#fff url(/images/budaya/pola-banten.webp) 0 0/360px repeat}
+body[data-bg=budaya] :is(.page-intro,.profile-band,.map-band):before{content:none!important}
+body[data-bg=budaya] :is(.profile-band,.map-band){background:rgba(241,245,239,.62)!important}
+body[data-bg=budaya].decor-ready .tourism-band{background:rgba(241,245,239,.62) url(/images/budaya/perahu-banten.webp) right top/min(560px,50%) auto no-repeat}
+body[data-bg=budaya] .tourism-band{background-color:rgba(241,245,239,.62)}
+body[data-bg=budaya] .quick-access{background:#fff}
+.bg-preview.bg-budaya{background:#fff url(/images/budaya/pola-banten.webp) 0 0/360px repeat}
+
+/* ===== Lapak Desa on the homepage ===== */
+.market-band{position:relative}.market-actions{display:flex;gap:10px;flex-wrap:wrap}.market-cats{margin-bottom:20px}
+.home-market .product-image img{height:200px}.market-foot{margin-top:16px}
+@media(max-width:700px){.home-market{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding-bottom:8px;margin-inline:-18px;padding-inline:18px;scrollbar-width:thin}.home-market>.product-card{flex:0 0 78%;scroll-snap-align:start}.market-actions{width:100%}.market-actions .button{flex:1}}

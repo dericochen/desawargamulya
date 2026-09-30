@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,scryptSync,timingSafeEqual,createHash} from 'node:crypto';
 import {seedRecords,siteSeed} from './seed.mjs';
-import {portalDDL,SCHEMA_VERSION,extraImageColumns} from './portal-schema.mjs';
+import {portalDDL,SCHEMA_VERSION,extraImageColumns,homeSectionKeys,legacyHomeOrder} from './portal-schema.mjs';
 import {portalSeed} from './portal-seed.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 let queryFn; let transactionFn; let ready; let closeFn=()=>{};
@@ -83,6 +83,8 @@ function upgradeSite(site){
   for(const k of ['nav','labels','pages'])for(const [key,value] of Object.entries(siteSeed[k]))if(!(key in site[k])){site[k][key]=structuredClone(value);changed=true;}
   // Design revision 2: the village requested a plain background with Banten cultural ornaments.
   if(revision<2){if(!site.backgroundStyle||site.backgroundStyle==='gelombang')site.backgroundStyle='budaya';site.designRevision=2;changed=true;}
+  // Revision 3: Lapak Desa moves up on the homepage, but only when the admin never changed the section order.
+  if(revision<3){if(JSON.stringify(site.homeSections)===JSON.stringify(legacyHomeOrder.map(key=>({key,visible:true}))))site.homeSections=homeSectionKeys.map(key=>({key,visible:true}));site.designRevision=3;changed=true;}
   // Replace untouched demo defaults that no longer fit a coastal village.
   if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;site.heroSlides=structuredClone(siteSeed.heroSlides);changed=true;}
   if(JSON.stringify(site.occupations)==='[{"label":"Pertanian","value":40},{"label":"Wiraswasta","value":27},{"label":"Karyawan","value":21},{"label":"Lainnya","value":12}]'){site.occupations=structuredClone(siteSeed.occupations);changed=true;}

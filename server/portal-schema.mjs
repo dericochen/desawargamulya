@@ -192,8 +192,10 @@ function columnSql(name,f){
 // Every image field may hold up to MAX_IMAGES photos: the first in the column itself, the rest as a JSON list in <field>_more.
 export const MAX_IMAGES=3;
 // Homepage blocks the admin can show/hide and reorder (the hero slideshow is always first).
-export const homeSectionKeys=['quick','news','profile','weather','market','tourism','projects','stats','gallery','latest','map','contact'];
-export const homeSectionLabels={quick:'Akses cepat layanan',news:'Pengumuman & agenda terdekat',profile:'Profil singkat desa',weather:'Cuaca',market:'Potensi desa / lapak',tourism:'Wisata desa',projects:'Pembangunan terbaru',stats:'Data desa singkat',gallery:'Galeri desa (slide)',latest:'Berita terbaru',map:'Peta desa',contact:'Kontak'};
+export const homeSectionKeys=['quick','news','market','profile','weather','tourism','projects','stats','gallery','latest','map','contact'];
+// Default order before design revision 3 (used to migrate untouched homepage settings only).
+export const legacyHomeOrder=['quick','news','profile','weather','market','tourism','projects','stats','gallery','latest','map','contact'];
+export const homeSectionLabels={quick:'Akses cepat layanan',news:'Pengumuman & agenda terdekat',profile:'Profil singkat desa',weather:'Cuaca',market:'Lapak desa (produk UMKM warga)',tourism:'Wisata desa',projects:'Pembangunan terbaru',stats:'Data desa singkat',gallery:'Galeri desa (slide)',latest:'Berita terbaru',map:'Peta desa',contact:'Kontak'};
 export const extraImageColumns=()=>[
   ...Object.entries(tables).flatMap(([table,def])=>Object.entries(def.fields).filter(([,f])=>f.type==='image').map(([k])=>[table,k+'_more'])),
   ['complaints','image_more']
