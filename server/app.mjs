@@ -1,7 +1,8 @@
 import express from 'express';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {query,transaction,getRecord,putRecord,parseRow,hash,verifyPassword,hashPassword} from './db.mjs';
-import {validateEnrollment,saveEvent,publicEnrollment,mountRegistrations} from './registrations.mjs';
+import {validateEnrollment,saveEvent,publicEnrollment,mountRegistrations,refreshEventTimes} from './registrations.mjs';
+import {mountPortal,portalMediaVisible,pruneMedia} from './portal.mjs';
 const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'3mb'}));
@@ -11,7 +12,9 @@ app.use((req,res,next)=>{
   if(req.path.startsWith('/api'))res.set('Cache-Control','no-store');
   if(!['GET','HEAD','OPTIONS'].includes(req.method)){
     const origin=req.headers.origin;
-    if(req.headers['sec-fetch-site']==='cross-site'||(origin&&new URL(origin).host!==req.get('host')))return res.status(403).json({error:'Permintaan tidak diizinkan.'});
+    // Opaque origins such as "null" are not parseable URLs; treat them as cross-site instead of crashing.
+    let crossOrigin=false;if(origin){try{crossOrigin=new URL(origin).host!==req.get('host');}catch{crossOrigin=true;}}
+    if(req.headers['sec-fetch-site']==='cross-site'||crossOrigin)return res.status(403).json({error:'Permintaan tidak diizinkan.'});
   }next();
 });
 const fail=(msg,status=400)=>Object.assign(new Error(msg),{status});
@@ -57,6 +60,7 @@ function validate(kind,input){
   if(kind!=='event')d.image=imageSafe(input.image);
   if(kind==='article'){if(!d.body)throw fail('Isi informasi wajib diisi.');d.featured=!!input.featured;if(!dateSafe(d.date))throw fail('Tanggal tidak valid.');}
   if(kind==='gallery'&&!d.image)throw fail('Foto galeri wajib diisi.');
+  if(kind==='gallery'){d.sortOrder=Number(input.sortOrder??100);if(!Number.isInteger(d.sortOrder)||d.sortOrder<0||d.sortOrder>9999)throw fail('Urutan tampil berupa angka 0–9999.');}
   if(kind==='product'){
     d.price=Number(input.price);if(!Number.isFinite(d.price)||d.price<0||d.price>1e12)throw fail('Harga tidak valid.');
     if(!d.seller||!d.description||!d.category)throw fail('Lengkapi penjual, kategori, dan deskripsi.');
@@ -78,8 +82,12 @@ app.get('/api/health',async(req,res)=>{await query('SELECT 1 AS ok');res.json({o
 app.get('/api/media/:id',async(req,res)=>{
   const rows=await query('SELECT * FROM media WHERE id=?',[req.params.id]);
   if(!rows.length)throw fail('Gambar tidak ditemukan.',404);
-  const item=rows[0],record=await getRecord(item.record_id);
-  if(!record||(record.status!=='published'&&!await isAdmin(req)))throw fail('Gambar tidak ditemukan.',404);
+  const item=rows[0];let visible=false;
+  if(item.record_id.startsWith('portal:'))visible=await portalMediaVisible(item.record_id);
+  else if(!item.record_id.startsWith('complaint:')){const record=await getRecord(item.record_id);visible=!!record&&record.status==='published';}
+  if(!visible&&!await isAdmin(req))throw fail('Gambar tidak ditemukan.',404);
+  // Media ids are immutable, so public images can be cached briefly; private ones never are.
+  if(visible)res.set('Cache-Control','public, max-age=3600');
   res.set('Content-Type',item.mime).send(Buffer.from(item.content,'base64'));
 });
 app.get('/api/content',async(req,res)=>{
@@ -107,6 +115,7 @@ app.put('/api/admin/site',auth,async(req,res)=>{
   try{new Intl.DateTimeFormat('id-ID',{timeZone:d.timezone});}catch{throw fail('Zona waktu tidak valid.');}
   for(const k of ['mapUrl','sourceUrl'])if(d[k]&&!/^https:\/\//.test(d[k]))throw fail('Tautan harus menggunakan HTTPS.');
   d.heroImage=await persistImage(imageSafe(req.body.heroImage??d.heroImage),'site');d.demo=req.body.demo!==false;
+  for(const [k,min,max] of [['villageLat',-90,90],['villageLng',-180,180],['officeLat',-90,90],['officeLng',-180,180]])if(k in req.body){const n=Number(req.body[k]);if(req.body[k]===''||!Number.isFinite(n)||n<min||n>max)throw fail('Koordinat peta tidak valid.');d[k]=n;}
   for(const k of ['nav','labels'])if(req.body[k])for(const key of Object.keys(d[k]))d[k][key]=clean(req.body[k][key]||d[k][key],100);
   if(req.body.pages)for(const key of Object.keys(d.pages))for(const field of ['eyebrow','title','intro'])if(field in (req.body.pages[key]||{}))d.pages[key][field]=clean(req.body.pages[key][field],field==='intro'?1000:150);
   for(const k of ['stats','population','occupations'])if(Array.isArray(req.body[k])){
@@ -114,7 +123,10 @@ app.put('/api/admin/site',auth,async(req,res)=>{
   }
   for(const k of ['productCategories','eventCategories'])if(Array.isArray(req.body[k]))d[k]=req.body[k].map(s=>clean(s,60)).filter(Boolean).slice(0,20);
   if(Array.isArray(req.body.credits))d.credits=req.body.credits.slice(0,30).map(r=>{const c={};for(const k of ['title','author','source','license','licenseUrl'])c[k]=clean(r[k],500);for(const k of ['source','licenseUrl'])if(c[k]&&!/^https:\/\//.test(c[k]))throw fail('Tautan sumber dan lisensi harus menggunakan HTTPS.');return c;});
-  res.json(await putRecord('site','site','published',d));
+  const saved=await putRecord('site','site','published',d);
+  await pruneMedia('site',[saved.heroImage]);
+  if(saved.timezone!==current.timezone)await refreshEventTimes();
+  res.json(saved);
 });
 app.post('/api/admin/records',auth,async(req,res)=>{
   const {kind}=req.body;if(!kinds.includes(kind))throw fail('Jenis tidak valid.');const status=req.body.status||'draft';if(!['draft','published'].includes(status))throw fail('Konten baru harus disimpan sebagai draf atau terbit.');const d=validate(kind,req.body);const id=randomUUID();
@@ -135,7 +147,9 @@ app.put('/api/admin/records/:id',auth,async(req,res)=>{
     if(['rejected','revision'].includes(req.body.status)&&!d.moderationNote)throw fail('Alasan perbaikan atau penolakan wajib diisi.');
     d.privateContact=old.privateContact||'';d.submissionToken=old.submissionToken||'';
   }
-  res.json(old.kind==='event'?await saveEvent(old.id,req.body.status,d,old.updatedAt):await putRecord(old.id,old.kind,req.body.status,d));
+  const saved=old.kind==='event'?await saveEvent(old.id,req.body.status,d,old.updatedAt):await putRecord(old.id,old.kind,req.body.status,d);
+  if(old.kind!=='event')await pruneMedia(old.id,[d.image]);
+  res.json(saved);
 });
 app.delete('/api/admin/records/:id',auth,async(req,res)=>{
   const r=await getRecord(req.params.id);if(!r||!kinds.includes(r.kind))throw fail('Konten tidak ditemukan.',404);
@@ -152,6 +166,8 @@ app.delete('/api/admin/records/:id',auth,async(req,res)=>{
 app.post('/api/submissions',async(req,res)=>{
   await rate(req,'submit',8,60);
   if(req.body.website)throw fail('Pengajuan tidak dapat diproses.');
+  // Public submissions must upload the photo itself; external URLs would load third-party content in the admin's browser.
+  if(typeof req.body.image!=='string'||!req.body.image.startsWith('data:image/'))throw fail('Unggah foto produk berformat JPG, PNG, atau WebP.');
   const d=validate('product',{...req.body,availability:req.body.availability||'Tersedia'});
   if(!d.image||!d.phone||!d.consent)throw fail('Foto, kontak, dan izin publikasi kontak wajib diisi.');
   const token=randomBytes(24).toString('hex');d.submissionToken=hash(token);d.privateContact=d.phone;d.featured=false;
@@ -173,6 +189,7 @@ app.put('/api/admin/password',auth,async(req,res)=>{
   await query('DELETE FROM sessions WHERE token_hash<>?',[hash(cookieToken(req))]);res.json({ok:true});
 });
 mountRegistrations(app,{auth,rate});
+mountPortal(app,{auth,rate,imageSafe,persistImage});
 app.use('/api',(req,res)=>res.status(404).json({error:'Layanan tidak ditemukan.'}));
 app.use((err,req,res,next)=>{if(!req.path.startsWith('/api'))return next(err);console.error(err.status?err.message:err);res.status(err.status||500).json({error:err.status?err.message:'Terjadi gangguan. Silakan coba lagi.'});});
 export default app;

@@ -4,5 +4,5 @@
   "framework":"vite",
   "regions":["sin1"],
   "functions":{"api/**/*.js":{"maxDuration":30}},
-  "rewrites":[{"source":"/api/:path*","destination":"/api?_route=:path*"},{"source":"/profil","destination":"/index.html"},{"source":"/informasi","destination":"/index.html"},{"source":"/agenda","destination":"/index.html"},{"source":"/lapak","destination":"/index.html"},{"source":"/galeri","destination":"/index.html"},{"source":"/kontak","destination":"/index.html"},{"source":"/admin","destination":"/index.html"}]
+  "rewrites":[{"source":"/api/:path*","destination":"/api?_route=:path*"},{"source":"/profil","destination":"/index.html"},{"source":"/informasi","destination":"/index.html"},{"source":"/agenda","destination":"/index.html"},{"source":"/lapak","destination":"/index.html"},{"source":"/galeri","destination":"/index.html"},{"source":"/kontak","destination":"/index.html"},{"source":"/wisata","destination":"/index.html"},{"source":"/peta-desa","destination":"/index.html"},{"source":"/pembangunan","destination":"/index.html"},{"source":"/bantuan","destination":"/index.html"},{"source":"/pengaduan","destination":"/index.html"},{"source":"/pengaduan/cek","destination":"/index.html"},{"source":"/tanya-desa","destination":"/index.html"},{"source":"/cari","destination":"/index.html"},{"source":"/admin","destination":"/index.html"}]
 }

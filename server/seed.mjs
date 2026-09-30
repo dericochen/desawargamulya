@@ -7,21 +7,27 @@ export const siteSeed = {
   history:'Profil ini merupakan contoh pengisian berdasarkan struktur data panitia EcoQuest. Riwayat pembentukan desa, asal nama, dan peristiwa penting dapat dilengkapi oleh pemerintah desa melalui pengelolaan konten.',
   vision:'Terwujudnya masyarakat desa yang mandiri, sejahtera, dan berdaya melalui pelayanan yang terbuka serta pengembangan potensi lokal.',
   missions:'Meningkatkan akses informasi dan kualitas pelayanan masyarakat.\nMendorong usaha warga dan pengembangan produk lokal.\nMemperkuat partisipasi masyarakat dalam kegiatan desa.\nMerawat lingkungan dan melestarikan kebudayaan lokal.',
-  geography:'Data batas wilayah, luas desa, serta pembagian dusun akan mengikuti hasil pendataan pemerintah desa.',
-  address:'Alamat kantor desa belum dikonfirmasi', phone:'', email:'', mapUrl:'',
+  geography:'Desa Marga Mulya berada di Kecamatan Mauk, Kabupaten Tangerang, Provinsi Banten, di kawasan pesisir utara sekitar Tanjung Kait. Batas wilayah, luas desa, serta pembagian dusun dan RT/RW mengikuti hasil pendataan pemerintah desa.',
+  address:'Jl. Raya Tanjung Kait, Desa Marga Mulya, Kecamatan Mauk, Kabupaten Tangerang, Banten', phone:'', email:'', mapUrl:'https://maps.app.goo.gl/g3gcZENZAvzwCvCY8',
+  villageLat:-6.0353563, villageLng:106.5260001, officeLat:-6.032823, officeLng:106.526683,
   hours:'Senin–Jumat, 08.00–15.00 (contoh jadwal)', timezone:'Asia/Jakarta',
   footer:'Informasi terbuka, kegiatan bersama, dan ruang tumbuh usaha warga.',
   demo:true, demoNote:'Versi demonstrasi EcoQuest. Isi, angka, nama usaha, dan agenda adalah contoh; foto merupakan ilustrasi.',
-  nav:{home:'Beranda',profil:'Profil desa',informasi:'Informasi',agenda:'Agenda',lapak:'Lapak desa',galeri:'Galeri',kontak:'Kontak'},
+  nav:{home:'Beranda',profil:'Profil desa',informasi:'Informasi',agenda:'Agenda',lapak:'Lapak desa',galeri:'Galeri',kontak:'Kontak',wisata:'Wisata',"peta-desa":'Peta Desa',pembangunan:'Pembangunan',bantuan:'Bantuan Desa',pengaduan:'Layanan warga'},
   pages:{
     profil:{eyebrow:'Mengenal desa',title:'Profil desa',intro:'Identitas, arah pembangunan, dan data masyarakat.'},
     informasi:{eyebrow:'Kabar & pengumuman',title:'Informasi desa',intro:'Ikuti kabar, kegiatan, dan pengumuman yang diterbitkan pengelola desa.'},
     agenda:{eyebrow:'Kegiatan masyarakat',title:'Agenda desa',intro:'Pilih tanggal untuk melihat kegiatan, waktu, dan lokasi pelaksanaan.'},
     lapak:{eyebrow:'Usaha & produk warga',title:'Lapak desa',intro:'Temukan hasil kebun, pangan, dan kerajinan dari usaha warga.'},
     galeri:{eyebrow:'Dokumentasi & potensi',title:'Cerita dalam gambar',intro:'Lingkungan, keterampilan, dan kehidupan masyarakat dalam dokumentasi.'},
-    kontak:{eyebrow:'Hubungi pengelola',title:'Kontak desa',intro:'Temukan alamat dan saluran komunikasi yang dikelola pemerintah desa.'}
+    kontak:{eyebrow:'Hubungi pengelola',title:'Kontak desa',intro:'Temukan alamat dan saluran komunikasi yang dikelola pemerintah desa.'},
+    wisata:{eyebrow:'Pesisir Tanjung Kait',title:'Wisata desa',intro:'Pantai dan tempat menarik di Desa Marga Mulya. Informasi tiket dan jam buka ditampilkan jika sudah dikonfirmasi pengelola.'},
+    "peta-desa":{eyebrow:'Wisata & fasilitas umum',title:'Peta desa',intro:'Geser dan perbesar peta, pilih kategori, lalu ketuk penanda untuk melihat alamat dan petunjuk arah.'},
+    pembangunan:{eyebrow:'Transparansi desa',title:'Pembangunan desa',intro:'Kegiatan pembangunan, anggaran, sumber dana, dan progres pelaksanaannya.'},
+    bantuan:{eyebrow:'Transparansi desa',title:'Bantuan desa',intro:'Program bantuan sosial, status penyaluran, dan dokumentasinya. Data pribadi penerima tidak ditampilkan.'},
+    pengaduan:{eyebrow:'Layanan warga',title:'Apa yang bisa kami bantu?',intro:'Cari jawaban pada pertanyaan umum. Jika belum terjawab, tanyakan Asisten Desa atau kirim pengaduan.'}
   },
-  labels:{news:'Kabar dari desa',agenda:'Agenda terdekat',market:'Dari tangan warga',stats:'Desa dalam angka',gallery:'Cerita dalam gambar',vision:'Visi desa',mission:'Misi desa'},
+  labels:{news:'Kabar dari desa',agenda:'Agenda terdekat',market:'Dari tangan warga',stats:'Desa dalam angka',gallery:'Galeri desa',vision:'Visi desa',mission:'Misi desa',tourism:'Wisata pesisir Marga Mulya',projects:'Pembangunan terbaru',map:'Peta wisata & fasilitas'},
   stats:[{label:'Penduduk',value:'2.846',unit:'jiwa'},{label:'Kepala keluarga',value:'842',unit:'KK'},{label:'Wilayah dusun',value:'4',unit:'dusun'},{label:'Usaha lokal',value:'36',unit:'usaha'}],
   population:[{label:'Usia 0–14 tahun',value:672},{label:'Usia 15–64 tahun',value:1874},{label:'Usia 65+ tahun',value:300}],
   occupations:[{label:'Pertanian',value:40},{label:'Wiraswasta',value:27},{label:'Karyawan',value:21},{label:'Lainnya',value:12}],
@@ -32,7 +38,9 @@ export const siteSeed = {
     {title:'Sayuran Indonesia',author:'Midori',source:'https://commons.wikimedia.org/wiki/File:Indonesian_vegetables.JPG',license:'CC BY-SA 3.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/3.0/'},
     {title:'Beras',author:'Sanjay Acharya',source:'https://commons.wikimedia.org/wiki/File:Unpolished-rice.jpg',license:'CC BY-SA 3.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/3.0/'},
     {title:'Anyaman bambu Tasikmalaya',author:'Abdulrohmatt',source:'https://commons.wikimedia.org/wiki/File:Woman_weaving_a_bamboo_basket,_Tasikmalaya.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'},
-    {title:'Anyaman bambu Sidetapa',author:'Dinata Juan',source:'https://commons.wikimedia.org/wiki/File:20180707_Sidetapa_anyam_bambu.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'}
+    {title:'Anyaman bambu Sidetapa',author:'Dinata Juan',source:'https://commons.wikimedia.org/wiki/File:20180707_Sidetapa_anyam_bambu.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'},
+    {title:'Kantor Desa Marga Mulya (28 Agustus 2024)',author:'Enperfectify World',source:'https://commons.wikimedia.org/wiki/File:Kantor_Desa_Marga_Mulya,_Kabupaten_Tangerang.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'},
+    {title:'Kantor Kecamatan Mauk (28 Agustus 2024)',author:'Enperfectify World',source:'https://commons.wikimedia.org/wiki/File:Kantor_Kecamatan_Mauk,_Kabupaten_Tangerang.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'}
   ],
   productCategories:['Pangan','Hasil kebun','Kerajinan','Jasa'], eventCategories:['Kegiatan warga','Ekonomi lokal','Pemerintahan','Kesehatan'],
 };

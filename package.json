@@ -1,7 +1,27 @@
 {
-  "name": "desa-marga-mulya", "version": "1.0.0", "private": true, "type": "module",
-  "scripts": {"dev":"node --env-file-if-exists=.env server/start.mjs", "build":"vite build --configLoader native", "start":"node --env-file-if-exists=.env server/preview.mjs", "check":"node --test tests/api.test.mjs"},
-  "engines": {"node": ">=22.13.0"},
-  "dependencies": {"react":"^19.1.0", "react-dom":"^19.1.0", "lucide-react":"^0.468.0", "express":"^5.1.0", "@neondatabase/serverless":"^1.0.0"},
-  "devDependencies": {"vite":"^6.3.5", "@vitejs/plugin-react":"^4.5.2"}
+  "name": "desa-marga-mulya",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server/start.mjs",
+    "build": "vite build --configLoader native",
+    "start": "node --env-file-if-exists=.env server/preview.mjs",
+    "check": "node --test tests/api.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "express": "^5.1.0",
+    "leaflet": "1.9.4",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.2",
+    "vite": "^6.3.5"
+  }
 }

@@ -25,16 +25,42 @@ export function validateEnrollment(input,event){
 }
 
 // The enrollment row serializes approvals and quota edits in both databases.
+const defaultTimeZone='Asia/Jakarta';
+async function siteTimeZone(){
+  const tz=(await getRecord('site'))?.timezone;
+  if(!tz)return defaultTimeZone;
+  try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return tz;}catch{return defaultTimeZone;}
+}
+// Converts a wall-clock date/time in an IANA time zone to a UTC ISO string (two passes handle DST edges).
+export function zonedToUtc(date,time,timeZone){
+  const fmt=new Intl.DateTimeFormat('en-US',{timeZone,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const offset=t=>{const p=Object.fromEntries(fmt.formatToParts(new Date(t)).map(x=>[x.type,x.value]));return Date.UTC(+p.year,p.month-1,+p.day,+p.hour,+p.minute,+p.second)-t;};
+  const wall=Date.parse(`${date}T${time.length===5?time+':00':time}Z`);
+  let t=wall-offset(wall);t=wall-offset(t);
+  return new Date(t).toISOString();
+}
+function eventTimes(data,timeZone){
+  const starts=zonedToUtc(data.date,data.time,timeZone);
+  const ends=zonedToUtc(data.endDate,data.endTime,timeZone);
+  const deadline=data.registrationDeadline?zonedToUtc(data.registrationDeadline,'23:59:59',timeZone):starts;
+  return {starts,ends,closes:deadline<starts?deadline:starts};
+}
+// Re-applies the site time zone to every event after the admin changes it.
+export async function refreshEventTimes(){
+  const tz=await siteTimeZone();
+  for(const r of await query("SELECT id,data FROM records WHERE kind='event'")){
+    const t=eventTimes(JSON.parse(r.data),tz);
+    await query('UPDATE event_enrollment SET closes_at=?,ends_at=? WHERE event_id=?',[t.closes,t.ends,r.id]);
+  }
+}
 export async function saveEvent(id,status,data,expectedVersion){
   const version=randomUUID(),stamp=now();
-  const starts=new Date(`${data.date}T${data.time}:00+07:00`).toISOString();
-  const ends=new Date(`${data.endDate}T${data.endTime}:00+07:00`).toISOString();
-  const deadline=data.registrationDeadline?new Date(`${data.registrationDeadline}T23:59:59+07:00`).toISOString():starts;
+  const {ends,closes}=eventTimes(data,await siteTimeZone());
   const active=status==='published'&&data.eventStatus==='Terjadwal';
   const result=await transaction([
     {sql:"INSERT INTO event_enrollment(event_id,participant_capacity,stall_capacity,accepting,active,closes_at,ends_at,version) VALUES (?,0,0,0,0,'','','') ON CONFLICT(event_id) DO NOTHING",args:[id]},
     lock(id),
-    {sql:`UPDATE event_enrollment SET participant_capacity=?,stall_capacity=?,accepting=?,active=?,closes_at=?,ends_at=?,version=? WHERE event_id=? AND ${countFor('participant')}<=? AND ${countFor('stall')}<=? AND (?='' OR EXISTS(SELECT 1 FROM records WHERE id=? AND updated_at=?)) RETURNING event_id`,args:[data.participantCapacity,data.stallCapacity,active&&data.registrationOpen?1:0,active?1:0,deadline<starts?deadline:starts,ends,version,id,data.participantCapacity,data.stallCapacity,expectedVersion||'',id,expectedVersion||'']},
+    {sql:`UPDATE event_enrollment SET participant_capacity=?,stall_capacity=?,accepting=?,active=?,closes_at=?,ends_at=?,version=? WHERE event_id=? AND ${countFor('participant')}<=? AND ${countFor('stall')}<=? AND (?='' OR EXISTS(SELECT 1 FROM records WHERE id=? AND updated_at=?)) RETURNING event_id`,args:[data.participantCapacity,data.stallCapacity,active&&data.registrationOpen?1:0,active?1:0,closes,ends,version,id,data.participantCapacity,data.stallCapacity,expectedVersion||'',id,expectedVersion||'']},
     {sql:"INSERT INTO records(id,kind,status,data,updated_at) SELECT ?,'event',?,?,? WHERE EXISTS(SELECT 1 FROM event_enrollment WHERE event_id=? AND version=?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,data=excluded.data,updated_at=excluded.updated_at RETURNING id",args:[id,status,JSON.stringify(data),stamp,id,version]}
   ]);
   if(!result[3].length)throw fail('Agenda telah berubah atau kuota lebih kecil dari jumlah yang sudah disetujui. Muat ulang dan periksa kuota.',409);
