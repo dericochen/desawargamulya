@@ -42,7 +42,7 @@ const FullscreenControl=L.Control.extend({
   }
 });
 
-export default function VillageMap({points,center,zoom=14,focusId,label='Peta interaktif Desa Marga Mulya',className=''}){
+export default function VillageMap({points,center,zoom=14,focusId,label='Peta interaktif desa',className=''}){
   const node=useRef(),map=useRef(),layer=useRef(),markers=useRef(new Map());
   useEffect(()=>{
     const m=L.map(node.current,{center,zoom,scrollWheelZoom:false,tap:true,zoomControl:false});

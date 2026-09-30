@@ -47,6 +47,7 @@ function App(){
  // Decorative background images load only after the page has finished loading, so they never delay the main photo.
  useEffect(()=>{const on=()=>setTimeout(()=>document.body.classList.add('decor-ready'),400);if(document.readyState==='complete')on();else window.addEventListener('load',on,{once:true});},[]);
  useReveal();
+ useEffect(()=>{if(data?.site)document.title='Portal Digital '+data.site.identity+(data.site.weatherPlace?' — '+data.site.weatherPlace:'');},[data?.site?.identity,data?.site?.weatherPlace]);
  useEffect(()=>{if(redirectLegacy())window.dispatchEvent(new PopStateEvent('popstate'));},[path]);
  const refresh=()=>Promise.all([api('/content'),api('/portal')]).then(([content,portal])=>{setData({...content,portal});setError('');}).catch(e=>setError(e.message));
  useEffect(()=>{refresh();},[]);useEffect(()=>{setMenu(false);},[path]);

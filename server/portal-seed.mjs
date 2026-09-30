@@ -1,7 +1,9 @@
-// Initial Portal Desa data. Locations and phone numbers were checked against public Google Maps
-// listings (September 2026). Unknown facts (tickets, hours, facilities) are left empty on purpose so
-// the website shows "Informasi belum tersedia" instead of invented values. Examples are marked "(contoh)".
-const source='Sumber lokasi: listing Google Maps, diperiksa September 2026.';
+// Initial Portal Desa data for demonstration. Coordinates and phone numbers are approximate and must be
+// verified by the village government before real use. Unknown facts (tickets, hours, facilities) are left
+// empty on purpose so the website shows "Informasi belum tersedia" instead of invented values.
+// Places of worship are intentionally not seeded (competition rule: no SARA-related content).
+export const approxNote='Lokasi perkiraan untuk demonstrasi; perlu diverifikasi pemerintah desa.';
+const source=approxNote;
 export const villageCenter={lat:-6.0353563,lng:106.5260001};
 export const officeLocation={lat:-6.032823,lng:106.526683};
 
@@ -11,11 +13,11 @@ const tourism=[
   ['wisata-hidden-gem','Pantai Hidden Gem','pantai-hidden-gem','Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.012579,106.532521,'','Pantai di ujung utara pesisir Marga Mulya.'],
   ['wisata-jk-park','Pantai Tanjung Kait JK Park','pantai-tanjung-kait-jk-park','Marga Mulya, Kecamatan Mauk, Kabupaten Tangerang, Banten',-6.014886,106.530316,'0856-7246-110','Kawasan pantai di sekitar Tanjung Kait.']
 ].map(([id,name,slug,address,latitude,longitude,phone,short],i)=>({table:'tourism_places',row:{id,name,slug,category:'Wisata pantai',short_description:short,
-  description:name+' berada di pesisir Desa Marga Mulya, Kecamatan Mauk. Jam operasional, harga tiket, dan fasilitas belum tersedia dari sumber resmi. Hubungi pengelola untuk informasi terbaru.'+(phone?' Nomor kontak berasal dari listing Google Maps dan dapat berubah.':''),
+  description:name+' berada di pesisir Desa Marga Mulya, Kecamatan Mauk. Jam operasional, harga tiket, dan fasilitas belum tersedia dari sumber resmi. Hubungi pengelola untuk informasi terbaru.'+(phone?' Nomor kontak perlu dikonfirmasi ulang kepada pengelola.':''),
   address,latitude,longitude,cover_image:'',opening_hours:'',ticket_information:'',phone,facilities:'',is_active:1,sort_order:(i+1)*10}}));
 
 const facilities=[
-  ['fas-kantor-desa','Kantor Desa Marga Mulya','pemerintahan','Jl. Raya Tanjung Kait, Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.032823,106.526683,'0838-9370-5055','/images/kantor-desa-marga-mulya.jpg','Pusat pelayanan administrasi pemerintahan desa. Nomor telepon dari listing Google Maps; konfirmasi ke pemerintah desa.'],
+  ['fas-kantor-desa','Kantor Desa Marga Mulya','pemerintahan','Jl. Raya Tanjung Kait, Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.032823,106.526683,'0838-9370-5055','/images/kantor-desa-marga-mulya.jpg','Pusat pelayanan administrasi pemerintahan desa. Nomor telepon perlu dikonfirmasi ke pemerintah desa.'],
   ['fas-kecamatan','Kantor Kecamatan Mauk','pemerintahan','Mauk Timur, Kec. Mauk, Kabupaten Tangerang, Banten',-6.057595,106.512538,'','/images/kantor-kecamatan-mauk.jpg',''],
   ['fas-puskesmas','Puskesmas Mauk','kesehatan','Jl. Raya Rajeg Tanjakan No.2, Mauk Timur, Kec. Mauk, Kabupaten Tangerang, Banten',-6.061331,106.510453,'','',''],
   ['fas-klinik-melati','Klinik Melati BPJS Mauk','kesehatan','Jalan Raya Mauk Blok PK5, Mauk Timur, Kec. Mauk, Kabupaten Tangerang, Banten',-6.058043,106.513452,'0812-9524-5170','',''],
@@ -24,9 +26,6 @@ const facilities=[
   ['fas-damkar','Pos Pemadam Kebakaran Mauk','pemadam','Ketapang, Kec. Mauk, Kabupaten Tangerang, Banten',-6.054856,106.511524,'(021) 5984343','',''],
   ['fas-sdn','SDN Margamulya','sekolah','Jl. Kp. Jl. Edison, Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.040389,106.523697,'','',''],
   ['fas-paud','KB PAUD Al Fikri Margamulya','sekolah','Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.035226,106.526775,'','',''],
-  ['fas-masjid-alfalah','Masjid Al Falah','ibadah','Jl. Raya Tanjung Kait No.1213, Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.028836,106.533154,'','',''],
-  ['fas-masjid-baituttaqwa','Masjid Jami Baituttaqwa','ibadah','Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.039679,106.523253,'','',''],
-  ['fas-kelenteng','Kelenteng Tjoe Soe Kong (Tanjung Kait)','ibadah','Tanjung Anom, Kec. Mauk, Kabupaten Tangerang, Banten',-6.016204,106.539233,'','','Berada di desa tetangga, dekat kawasan pantai Tanjung Kait.'],
   ['fas-atm-mandiri','ATM Mandiri','atm','Jl. Raya Tanjung Kait, Marga Mulya, Kec. Mauk, Kabupaten Tangerang, Banten',-6.029698,106.532018,'','',''],
   ['fas-pasar-mauk','Pasar Mauk','lainnya','Mauk Timur, Kec. Mauk, Kabupaten Tangerang, Banten',-6.061234,106.511558,'','',''],
   ['fas-spbu','SPBU Pertamina 34.155.03','spbu','Jl. Raya Mauk Km 17, Kedung Dalem, Kec. Mauk, Kabupaten Tangerang, Banten',-6.075510,106.538380,'(021) 59330508','','SPBU terdekat di jalur Jl. Raya Mauk.']
@@ -37,10 +36,10 @@ const emergency=[
   ['em-110','Polisi','110','polisi','nasional','Laporan kejahatan dan gangguan keamanan.',2],
   ['em-119','Darurat Medis / Ambulans','119','medis','nasional','Layanan kegawatdaruratan medis.',3],
   ['em-113','Pemadam Kebakaran','113','pemadam','nasional','Kebakaran dan penyelamatan.',4],
-  ['em-polsek','Polsek Mauk','(021) 59330110','polisi','lokal','Jl. Oto Iskandardinata No.2, Mauk Timur. Sumber: listing Google Maps.',10],
-  ['em-damkar','Pos Pemadam Kebakaran Mauk','(021) 5984343','pemadam','lokal','Ketapang, Kec. Mauk. Sumber: listing Google Maps.',11],
+  ['em-polsek','Polsek Mauk','(021) 59330110','polisi','lokal','Jl. Oto Iskandardinata No.2, Mauk Timur. Nomor perlu dikonfirmasi ulang.',10],
+  ['em-damkar','Pos Pemadam Kebakaran Mauk','(021) 5984343','pemadam','lokal','Ketapang, Kec. Mauk. Nomor perlu dikonfirmasi ulang.',11],
   ['em-puskesmas','Puskesmas Mauk','','medis','lokal','Nomor belum terverifikasi. Lengkapi lalu aktifkan dari panel admin.',12],
-  ['em-kantor-desa','Kantor Desa Marga Mulya','0838-9370-5055','desa','lokal','Pada jam pelayanan. Sumber: listing Google Maps; konfirmasi ke pemerintah desa.',13]
+  ['em-kantor-desa','Kantor Desa Marga Mulya','0838-9370-5055','desa','lokal','Pada jam pelayanan. Nomor perlu dikonfirmasi ke pemerintah desa.',13]
 ].map(([id,name,phone,category,scope,description,priority])=>({table:'emergency_contacts',row:{id,name,phone,category,scope,description,priority,is_active:phone?1:0}}));
 
 const faqs=[

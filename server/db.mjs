@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {randomBytes,scryptSync,timingSafeEqual,createHash} from 'node:crypto';
 import {seedRecords,siteSeed} from './seed.mjs';
 import {portalDDL,SCHEMA_VERSION,extraImageColumns,homeSectionKeys,legacyHomeOrder} from './portal-schema.mjs';
-import {portalSeed} from './portal-seed.mjs';
+import {portalSeed,approxNote} from './portal-seed.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 let queryFn; let transactionFn; let ready; let closeFn=()=>{};
 // Releases the local SQLite file handle (used by tests so the temp folder can be deleted on Windows).
@@ -40,6 +40,7 @@ export async function init(){
     const existing=await queryFn("SELECT id FROM records WHERE id='__seeded'");
     if(!existing.length){for(const r of seedRecords())await queryFn('INSERT INTO records (id,kind,status,data,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING',[r.id,r.kind,r.status,JSON.stringify(r.data),new Date().toISOString()]);await queryFn('INSERT INTO records (id,kind,status,data,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING',['__seeded','system','private','{}',new Date().toISOString()]);}
     await migratePortal();
+    await cleanupPortalContent();
     const siteRows=await queryFn("SELECT data FROM records WHERE id='site'");
     if(siteRows.length){const site=JSON.parse(siteRows[0].data);if(upgradeSite(site))await queryFn("UPDATE records SET data=? WHERE id='site'",[JSON.stringify(site)]);}
     const auth=await queryFn("SELECT data FROM records WHERE id='__auth'");
@@ -74,6 +75,23 @@ async function migratePortal(){
   }
   await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_seeded','system','private','{}',?) ON CONFLICT(id) DO NOTHING",[now]);
 }
+// One-time content fix (2026-09-30): no places of worship on the public map (SARA rule) and no
+// "Google Maps" source notes; demo coordinates/phones are labelled as approximate instead.
+async function cleanupPortalContent(){
+  if((await queryFn("SELECT id FROM records WHERE id='__portal_rev4'")).length)return;
+  const worship=['fas-masjid-alfalah','fas-masjid-baituttaqwa','fas-kelenteng'];
+  for(const id of worship){await queryFn('DELETE FROM media WHERE record_id=?',['portal:public_facilities:'+id]);await queryFn('DELETE FROM public_facilities WHERE id=?',[id]);}
+  await queryFn("UPDATE public_facilities SET category='lainnya', is_active=0 WHERE category='ibadah'");
+  const notes=[
+    ['public_facilities','Sumber lokasi: listing Google Maps, diperiksa September 2026.',approxNote],
+    ['public_facilities','Nomor telepon dari listing Google Maps; konfirmasi ke pemerintah desa.','Nomor telepon perlu dikonfirmasi ke pemerintah desa.'],
+    ['emergency_contacts','Sumber: listing Google Maps; konfirmasi ke pemerintah desa.','Nomor perlu dikonfirmasi ke pemerintah desa.'],
+    ['emergency_contacts','Sumber: listing Google Maps.','Nomor perlu dikonfirmasi ulang.'],
+    ['tourism_places','Nomor kontak berasal dari listing Google Maps dan dapat berubah.','Nomor kontak perlu dikonfirmasi ulang kepada pengelola.']
+  ];
+  for(const [table,from,to] of notes)await queryFn(`UPDATE ${table} SET description=REPLACE(description,?,?) WHERE description LIKE ?`,[from,to,'%'+from+'%']);
+  await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_rev4','system','private','{}',?) ON CONFLICT(id) DO NOTHING",[new Date().toISOString()]);
+}
 // Brings an existing site record up to date with new menu keys/pages and fills placeholders with verified location data.
 function upgradeSite(site){
   let changed=false;const revision=site.designRevision||1;
@@ -82,9 +100,22 @@ function upgradeSite(site){
   for(const [k,v] of Object.entries(siteSeed))if(site[k]===undefined){site[k]=structuredClone(v);changed=true;}
   for(const k of ['nav','labels','pages'])for(const [key,value] of Object.entries(siteSeed[k]))if(!(key in site[k])){site[k][key]=structuredClone(value);changed=true;}
   // Design revision 2: the village requested a plain background with Banten cultural ornaments.
-  if(revision<2){if(!site.backgroundStyle||site.backgroundStyle==='gelombang')site.backgroundStyle='budaya';site.designRevision=2;changed=true;}
+  if(revision<2){if(!site.backgroundStyle||site.backgroundStyle==='gelombang')site.backgroundStyle='budaya';site.designRevision=Math.max(site.designRevision||0,2);changed=true;}
+  // Revision 4: complete groups B, C and E of the EcoQuest data structure. A group is replaced only while it
+  // still holds the untouched demo values (label:value signature), so admin edits are never overwritten.
+  if(revision<4){
+    const sig=s=>s.title+'|'+s.rows.map(r=>r.label+':'+r.value).join(',');
+    const old={
+      'Pemerintahan desa|Aparat desa:14,Anggota Linmas:24,Pos kamling:12,Pos polisi:1,Jumlah RW:6,Jumlah RT:24,Kantor desa & balai desa:2':['Pemerintahan desa','Aparat desa & kecamatan'],
+      'Mata pencaharian pokok|Nelayan:412,Petani & petambak:358,Karyawan swasta:287,Pengrajin & UMKM:164,Guru:38,PNS:22,TNI / POLRI:9,Lainnya:182':['Mata pencaharian pokok'],
+      'Pendidikan|PAUD / TK:3,SD/MI negeri & swasta:3,SLTP/MTs:1,Guru:46,Murid:912,Ruang kelas:38,Lembaga kursus (menjahit, komputer):2,Kelompok Paket A/B/C:2':['Sekolah menurut jenjang','Guru, murid & ruang kelas','Pendidikan non-formal & luar sekolah']
+    };
+    if(Array.isArray(site.dataSections))site.dataSections=site.dataSections.flatMap(s=>{const titles=old[sig(s)];return titles?structuredClone(siteSeed.dataSections.filter(x=>titles.includes(x.title))):[s];});
+    if(site.mapIntro==='Pantai, sekolah, tempat ibadah, layanan kesehatan, dan keamanan di sekitar desa.')site.mapIntro=siteSeed.mapIntro;
+    site.designRevision=4;changed=true;
+  }
   // Revision 3: Lapak Desa moves up on the homepage, but only when the admin never changed the section order.
-  if(revision<3){if(JSON.stringify(site.homeSections)===JSON.stringify(legacyHomeOrder.map(key=>({key,visible:true}))))site.homeSections=homeSectionKeys.map(key=>({key,visible:true}));site.designRevision=3;changed=true;}
+  if(revision<3){if(JSON.stringify(site.homeSections)===JSON.stringify(legacyHomeOrder.map(key=>({key,visible:true}))))site.homeSections=homeSectionKeys.map(key=>({key,visible:true}));site.designRevision=Math.max(site.designRevision||0,3);changed=true;}
   // Replace untouched demo defaults that no longer fit a coastal village.
   if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;site.heroSlides=structuredClone(siteSeed.heroSlides);changed=true;}
   if(JSON.stringify(site.occupations)==='[{"label":"Pertanian","value":40},{"label":"Wiraswasta","value":27},{"label":"Karyawan","value":21},{"label":"Lainnya","value":12}]'){site.occupations=structuredClone(siteSeed.occupations);changed=true;}

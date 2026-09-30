@@ -102,7 +102,7 @@ function RecipientImport({program}){
     <Notice error>{err}</Notice><Notice>{msg}</Notice><div className="form-actions"><button className="button"><Upload/>Impor</button><button type="button" className="button secondary" onClick={()=>setOpen(false)}>Tutup</button></div></form>;
 }
 
-export function ComplaintsAdmin({onChanged}){
+export function ComplaintsAdmin({onChanged,site}){
   const [rows,setRows]=useState(null),[status,setStatus]=useState('all'),[q,setQ]=useState(''),[open,setOpen]=useState(null),[error,setError]=useState('');
   const load=()=>api('/admin/complaints').then(r=>{setRows(r);setError('');}).catch(x=>setError(x.message));
   useEffect(()=>{load();},[]);
@@ -111,13 +111,13 @@ export function ComplaintsAdmin({onChanged}){
     <div className="filter-bar"><div className="search-field"><Search/><input aria-label="Cari pengaduan" placeholder="Cari tiket, nama, judul, atau lokasi…" value={q} onChange={e=>setQ(e.target.value)}/></div><select aria-label="Status pengaduan" value={status} onChange={e=>setStatus(e.target.value)}><option value="all">Semua status</option>{complaintStatuses.map(([k,l])=><option key={k} value={k}>{l}</option>)}</select><button className="button secondary" onClick={load}><RefreshCw size={16}/>Muat ulang</button></div>
     <Notice error>{error}</Notice>
     {rows===null?!error&&<Busy/>:list.length?<div className="records-list">{list.map(c=><div className="registration-row" key={c.id}><div className="registration-symbol ticket-symbol">{c.ticket}</div><div className="registration-person"><strong>{c.title}</strong><p>{c.category} · {c.area_name||'Wilayah tidak diisi'}{c.rt&&` · RT ${c.rt}/RW ${c.rw}`}</p><p>{c.name} · {timeLabel(c.created_at)}</p></div><span className={'status '+complaintClass[c.status]}>{complaintLabel[c.status]}</span><button className="button secondary" onClick={()=>setOpen(c.id)}>Tindak lanjut</button></div>)}</div>:<Empty title="Belum ada pengaduan yang sesuai"/>}
-    {open&&<ComplaintDetail id={open} onClose={()=>setOpen(null)} onSaved={async()=>{await load();onChanged?.();}}/>}</>;
+    {open&&<ComplaintDetail id={open} identity={site?.identity||'Pemerintah desa'} onClose={()=>setOpen(null)} onSaved={async()=>{await load();onChanged?.();}}/>}</>;
 }
-function ComplaintDetail({id,onClose,onSaved}){
+function ComplaintDetail({id,identity,onClose,onSaved}){
   const [c,setC]=useState(null),[status,setStatus]=useState(''),[note,setNote]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[msg,setMsg]=useState('');
   const load=()=>api('/admin/complaints/'+id).then(r=>{setC(r);setStatus(r.status);}).catch(x=>setError(x.message));
   useEffect(()=>{load();},[id]);
-  const wa=c&&'https://wa.me/'+c.phone+'?text='+encodeURIComponent(`Halo ${c.name}, kami dari Pemerintah Desa Marga Mulya terkait pengaduan ${c.ticket}.`);
+  const wa=c&&'https://wa.me/'+c.phone+'?text='+encodeURIComponent(`Halo ${c.name}, kami dari Pemerintah ${identity} terkait pengaduan ${c.ticket}.`);
   return <Modal title={c?c.ticket+' · '+c.title:'Pengaduan'} wide onClose={onClose}>{!c?<><Busy/><Notice error>{error}</Notice></>:<>
     <span className={'status '+complaintClass[c.status]}>{complaintLabel[c.status]}</span>
     <dl className="applicant-details">{[['Nama',c.name],['WhatsApp',c.phone],['Dusun / wilayah',c.area_name||'—'],['RT / RW',c.rt?`${c.rt} / ${c.rw||'—'}`:'—'],['Kategori',c.category],['Lokasi kejadian',c.location],['Isi pengaduan',c.body],['Dikirim',timeLabel(c.created_at)]].map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>

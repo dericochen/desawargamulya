@@ -86,7 +86,7 @@ export function Assistant({portal,site}){
   useEffect(()=>{if(open&&view==='bot'&&!bot.log.length)bot.reset();},[open,view]);
   useEffect(()=>{logEnd.current?.scrollIntoView({block:'end'});},[bot.log.length,view]);
   if(!open)return null;
-  return <Modal title="Asisten Desa Marga Mulya" onClose={close} className="assistant-dialog">
+  return <Modal title={'Asisten Desa '+site.name} onClose={close} className="assistant-dialog">
     {view==='bot'?<div className="bot">
       {token&&<button className="resume-chat" onClick={()=>setView('chat')}><UserRound aria-hidden="true"/>Lanjutkan percakapan dengan Admin Desa</button>}
       <div className="chat-log" aria-live="polite">{bot.log.map(m=><div key={m.id} className={'bubble '+(m.from==='user'?'me':'them')}>{m.from==='bot'&&<span className="bubble-who"><Bot size={13} aria-hidden="true"/> Asisten Desa</span>}<p>{m.text}</p></div>)}<div ref={logEnd}/></div>
@@ -106,7 +106,7 @@ export function EmergencySheet({contacts}){
   const group=(scope,title)=>{const list=contacts.filter(c=>c.scope===scope&&c.phone);return list.length?<section className="emergency-group"><h3>{title}</h3><ul>{list.map(c=>{const Icon=emergencyIcons[c.category]||PhoneCall;return <li key={c.id}><span className="emergency-icon"><Icon aria-hidden="true"/></span><div><strong>{c.name}</strong><span className="emergency-number">{c.phone}</span>{c.description&&<p>{c.description}</p>}</div><a className="button call-button" href={telHref(c.phone)} aria-label={'Telepon '+c.name+' '+c.phone}><Phone/>TELEPON</a></li>;})}</ul></section>:null;};
   return <Modal title="Darurat" onClose={()=>setOpen(false)} className="sheet emergency-dialog">
     <p className="emergency-intro">Tekan <strong>TELEPON</strong> untuk langsung menghubungi. Utamakan keselamatan dan sebutkan lokasi dengan jelas.</p>
-    {group('nasional','Nomor darurat nasional')}{group('lokal','Kontak lokal Mauk & desa')}
+    {group('nasional','Nomor darurat nasional')}{group('lokal','Kontak lokal sekitar desa')}
     {!contacts.length&&<Notice error>Daftar nomor belum tersedia. Hubungi 112.</Notice>}
   </Modal>;
 }

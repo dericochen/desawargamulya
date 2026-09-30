@@ -102,6 +102,15 @@ export async function checkPortal(t,request){
     const site=(await request('/content')).data.site;
     assert.deepEqual([...new Set(site.dataSections.map(s=>s.code))],['A','B','C','E','F','G','H','I','J','K','L','M']);
     assert.equal(/agama|pemeluk/i.test(JSON.stringify(site.dataSections)),false,'no SARA-related data');
+    const rowsOf=t=>site.dataSections.find(s=>s.title===t).rows.map(r=>r.label);
+    assert.ok(rowsOf('Pemerintahan desa').includes('Aparat Kecamatan Mauk')&&rowsOf('Pemerintahan desa').includes('Balai desa'));
+    assert.ok(['Status PNS','Laki-laki','Pendidikan Sarjana'].every(l=>rowsOf('Aparat desa & kecamatan').includes(l)));
+    assert.ok(rowsOf('Mata pencaharian pokok').includes('TNI')&&rowsOf('Mata pencaharian pokok').includes('POLRI'));
+    assert.ok(['SLTA/SMK/MA','Perguruan Tinggi'].every(l=>rowsOf('Sekolah menurut jenjang').includes(l)));
+    assert.ok(['Kursus bahasa','Kursus montir','Paket A','Paket B','Paket C'].every(l=>rowsOf('Pendidikan non-formal & luar sekolah').includes(l)));
+    const portal=JSON.stringify((await request('/portal')).data);
+    assert.equal(/Google Maps/i.test(portal),false,'no Google Maps source notes');
+    assert.equal(/masjid|kelenteng|gereja|vihara|"ibadah"/i.test(portal),false,'no places of worship on the public map');
     assert.equal(site.homeProfileTitle,'Desa pesisir di utara Mauk');assert.equal(site.backgroundStyle,'budaya');assert.equal(site.heroImage,'/images/pesisir-tangerang.jpg');
     const bad=structuredClone(site.dataSections);bad.find(s=>s.chart==='bar').rows[0].value='banyak';
     assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{dataSections:bad}})).status,400);
