@@ -44,6 +44,8 @@ function App(){
  const[data,setData]=useState(null),[error,setError]=useState(''),[menu,setMenu]=useState(false),[credits,setCredits]=useState(false);const path=useRoute();
  // Background motif chosen in the CMS (gelombang / anyaman / polos).
  useEffect(()=>{document.body.dataset.bg=data?.site?.backgroundStyle||'budaya';},[data?.site?.backgroundStyle]);
+ // Decorative background images load only after the page has finished loading, so they never delay the main photo.
+ useEffect(()=>{const on=()=>setTimeout(()=>document.body.classList.add('decor-ready'),400);if(document.readyState==='complete')on();else window.addEventListener('load',on,{once:true});},[]);
  useReveal();
  useEffect(()=>{if(redirectLegacy())window.dispatchEvent(new PopStateEvent('popstate'));},[path]);
  const refresh=()=>Promise.all([api('/content'),api('/portal')]).then(([content,portal])=>{setData({...content,portal});setError('');}).catch(e=>setError(e.message));

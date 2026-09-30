@@ -236,22 +236,22 @@ body:not([data-bg=polos]) .page-intro{position:relative}body:not([data-bg=polos]
 
 /* ===== Budaya Banten background (plain + ornaments from CC-licensed photos) ===== */
 body[data-bg=budaya]{background-image:none}
-body[data-bg=budaya] .page-intro{position:relative;isolation:isolate}
-body[data-bg=budaya] .page-intro:before{content:"";position:absolute;z-index:-1;right:-30px;top:0;width:min(360px,42vw);height:100%;min-height:220px;background:url(/images/budaya/batik-surosowan.webp) right center/contain no-repeat;pointer-events:none;animation:drift 14s ease-in-out infinite alternate}
-body[data-bg=budaya] .page-intro:after{content:"";position:absolute;left:0;bottom:8px;width:240px;height:22px;background:url(/images/budaya/ornamen-garis.webp) left center/240px auto no-repeat}
-body[data-bg=budaya] .profile-band{position:relative;overflow:hidden;background:#f1f4ee}
-body[data-bg=budaya] .profile-band:before{content:"";position:absolute;left:-90px;bottom:-110px;width:380px;height:380px;background:url(/images/budaya/batik-mandalikan.webp) center/contain no-repeat;pointer-events:none;animation:drift 16s ease-in-out infinite alternate}
-body[data-bg=budaya] .profile-band>.container{position:relative}
-body[data-bg=budaya] .tourism-band{background:#f3f6f1 url(/images/budaya/perahu-banten.webp) right top/min(620px,55%) auto no-repeat}
-body[data-bg=budaya] .map-band{position:relative;overflow:hidden;background:#f1f4ee}
-body[data-bg=budaya] .map-band:before{content:"";position:absolute;right:-120px;top:-120px;width:420px;height:420px;background:url(/images/budaya/ornamen-bunga.webp) center/contain no-repeat;pointer-events:none;animation:spin-slow 120s linear infinite}
-body[data-bg=budaya] .map-band>.container{position:relative}
-body[data-bg=budaya] :is(.stats-band,.footer){background-image:url(/images/budaya/tenun-baduy.webp);background-size:900px auto;background-position:center}
-body[data-bg=budaya] .footer{position:relative;margin-top:18px}
-body[data-bg=budaya] .footer:before{content:"";position:absolute;left:0;right:0;top:-18px;height:18px;background:var(--green-deep) url(/images/budaya/ornamen-garis.webp) center/360px auto repeat-x;border-top:1px solid #b9955244}
-body[data-bg=budaya] .section-heading .eyebrow:before{content:"";display:inline-block;width:26px;height:10px;margin-right:8px;vertical-align:middle;background:url(/images/budaya/ornamen-garis.webp) 0 50%/110px auto no-repeat}
+body[data-bg=budaya].decor-ready .page-intro{position:relative;isolation:isolate}
+body[data-bg=budaya].decor-ready .page-intro:before{content:"";position:absolute;z-index:-1;right:-30px;top:0;width:min(360px,42vw);height:100%;min-height:220px;background:url(/images/budaya/batik-surosowan.webp) right center/contain no-repeat;pointer-events:none;animation:drift 14s ease-in-out infinite alternate}
+body[data-bg=budaya].decor-ready .page-intro:after{content:"";position:absolute;left:0;bottom:8px;width:240px;height:22px;background:url(/images/budaya/ornamen-garis.webp) left center/240px auto no-repeat}
+body[data-bg=budaya].decor-ready .profile-band{position:relative;overflow:hidden;background:#f1f4ee}
+body[data-bg=budaya].decor-ready .profile-band:before{content:"";position:absolute;left:-90px;bottom:-110px;width:380px;height:380px;background:url(/images/budaya/batik-mandalikan.webp) center/contain no-repeat;pointer-events:none;animation:drift 16s ease-in-out infinite alternate}
+body[data-bg=budaya].decor-ready .profile-band>.container{position:relative}
+body[data-bg=budaya].decor-ready .tourism-band{background:#f3f6f1 url(/images/budaya/perahu-banten.webp) right top/min(620px,55%) auto no-repeat}
+body[data-bg=budaya].decor-ready .map-band{position:relative;overflow:hidden;background:#f1f4ee}
+body[data-bg=budaya].decor-ready .map-band:before{content:"";position:absolute;right:-120px;top:-120px;width:420px;height:420px;background:url(/images/budaya/ornamen-bunga.webp) center/contain no-repeat;pointer-events:none;animation:spin-slow 120s linear infinite}
+body[data-bg=budaya].decor-ready .map-band>.container{position:relative}
+body[data-bg=budaya].decor-ready :is(.stats-band,.footer){background-image:url(/images/budaya/tenun-baduy.webp);background-size:900px auto;background-position:center}
+body[data-bg=budaya].decor-ready .footer{position:relative;margin-top:18px}
+body[data-bg=budaya].decor-ready .footer:before{content:"";position:absolute;left:0;right:0;top:-18px;height:18px;background:var(--green-deep) url(/images/budaya/ornamen-garis.webp) center/360px auto repeat-x;border-top:1px solid #b9955244}
+body[data-bg=budaya].decor-ready .section-heading .eyebrow:before{content:"";display:inline-block;width:26px;height:10px;margin-right:8px;vertical-align:middle;background:url(/images/budaya/ornamen-garis.webp) 0 50%/110px auto no-repeat}
 .bg-preview.bg-budaya{background:var(--paper) url(/images/budaya/batik-surosowan.webp) right center/contain no-repeat}
-@media(max-width:700px){body[data-bg=budaya] .page-intro:before{width:180px;right:-50px;opacity:.7}body[data-bg=budaya] .tourism-band{background-size:90% auto}body[data-bg=budaya] .profile-band:before{width:260px;height:260px}}
+@media(max-width:700px){body[data-bg=budaya].decor-ready .page-intro:before{width:180px;right:-50px;opacity:.7}body[data-bg=budaya].decor-ready .tourism-band{background-size:90% auto}body[data-bg=budaya].decor-ready .profile-band:before{width:260px;height:260px}}
 
 /* ===== Motion ===== */
 @keyframes drift{from{transform:translateY(0)}to{transform:translateY(-10px)}}

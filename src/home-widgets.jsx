@@ -6,12 +6,13 @@ import {Link,Modal,Picture,Slides,PhotoCount,imagesOf,openAssistant,openEmergenc
 // Homepage hero slideshow: crossfade every 6 s, pauses on hover/focus/touch, can be paused by the visitor, honours reduced motion.
 export function HeroSlider({site:s}){
   const slides=(s.heroSlides?.length?s.heroSlides:[{image:s.heroImage,caption:s.heroCaption}]).filter(x=>x.image);
+  const [warm,setWarm]=useState(false);useEffect(()=>{const t=setTimeout(()=>setWarm(true),2500);return()=>clearTimeout(t);},[]);
   const [i,setI]=useState(0),[hover,setHover]=useState(false),[stopped,setStopped]=useState(()=>typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
-  useEffect(()=>{if(stopped||hover||slides.length<2)return;const t=setInterval(()=>{if(document.visibilityState==='visible')setI(n=>(n+1)%slides.length);},6000);return()=>clearInterval(t);},[stopped,hover,slides.length]);
+  useEffect(()=>{if(!warm||stopped||hover||slides.length<2)return;const t=setInterval(()=>{if(document.visibilityState==='visible')setI(n=>(n+1)%slides.length);},6000);return()=>clearInterval(t);},[warm,stopped,hover,slides.length]);
   const go=n=>setI((n+slides.length)%slides.length);
   const buttons=(s.heroButtons||[]).filter(b=>b.label&&b.href);
   return <section className="hero" aria-roledescription="carousel" aria-label="Foto utama desa" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} onFocus={()=>setHover(true)} onBlur={()=>setHover(false)} onTouchStart={()=>setHover(true)}>
-    {slides.map((x,n)=><div key={n} className={'hero-slide '+(n===i?'active':'')} aria-hidden={n!==i}>{n===0?<Picture src={x.image} alt={x.caption} className="hero-photo"/>:<img src={x.image} alt={x.caption} className="hero-photo" loading={n===1?'eager':'lazy'} decoding="async"/>}</div>)}
+    {slides.map((x,n)=><div key={n} className={'hero-slide '+(n===i?'active':'')} aria-hidden={n!==i}>{n===0?<Picture src={x.image} alt={x.caption} className="hero-photo"/>:warm&&<img src={x.image} alt={x.caption} className="hero-photo" decoding="async"/>}</div>)}
     <div className="hero-shade"/>
     <div className="container hero-content"><span className="eyebrow light">{s.identity}</span><h1>{s.heroTitle.split('\n').map((l,n)=><React.Fragment key={n}>{l}<br/></React.Fragment>)}</h1><p>{s.heroText}</p>
       {buttons.length>0&&<div className="hero-actions">{buttons.map((b,n)=><Link key={n} className={'button '+(n===0?'gold':'transparent')} href={b.href}>{b.label}</Link>)}</div>}
