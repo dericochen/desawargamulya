@@ -45,7 +45,9 @@ const FullscreenControl=L.Control.extend({
 export default function VillageMap({points,center,zoom=14,focusId,label='Peta interaktif Desa Marga Mulya',className=''}){
   const node=useRef(),map=useRef(),layer=useRef(),markers=useRef(new Map());
   useEffect(()=>{
-    const m=L.map(node.current,{center,zoom,scrollWheelZoom:false,tap:true});
+    const m=L.map(node.current,{center,zoom,scrollWheelZoom:false,tap:true,zoomControl:false});
+    L.control.zoom({zoomInTitle:'Perbesar peta',zoomOutTitle:'Perkecil peta'}).addTo(m);
+    m.on('popupopen',e=>{const b=e.popup.getElement()?.querySelector('.leaflet-popup-close-button');if(b){b.setAttribute('aria-label','Tutup keterangan lokasi');b.title='Tutup';}});
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>'}).addTo(m);
     new FullscreenControl().addTo(m);
     // Wheel zoom only after the user clicks the map, so scrolling the page is not hijacked.

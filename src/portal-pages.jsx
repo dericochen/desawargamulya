@@ -95,7 +95,7 @@ export function Development({data,embedded}){
   const list=all.filter(p=>(status==='Semua'||p.status===status)&&(year==='Semua'||String(p.year)===year));
   return <>{embedded?<p className="hub-intro-text">{data.site.pages.pembangunan.intro}</p>:<PageIntro {...data.site.pages.pembangunan}>{data.site.pages.pembangunan.intro}</PageIntro>}
     <div className="filter-bar"><select aria-label="Status pembangunan" value={status} onChange={e=>setStatus(e.target.value)}>{['Semua','Direncanakan','Berjalan','Selesai','Ditunda'].map(s=><option key={s} value={s}>{s==='Semua'?'Semua status':s}</option>)}</select><select aria-label="Tahun" value={year} onChange={e=>setYear(e.target.value)}>{['Semua',...new Set(all.map(p=>String(p.year)))].map(y=><option key={y} value={y}>{y==='Semua'?'Semua tahun':y}</option>)}</select><span className="result-count">{list.length} kegiatan</span></div>
-    {list.length?<div className="project-grid">{list.map(p=><ProjectCard key={p.id} project={p} onDetail={select}/>)}</div>:<Empty title="Belum ada kegiatan pembangunan" text="Coba ubah filter status atau tahun."/>}
+    <h2 className="sr-only">Daftar kegiatan pembangunan</h2>{list.length?<div className="project-grid">{list.map(p=><ProjectCard key={p.id} project={p} onDetail={select}/>)}</div>:<Empty title="Belum ada kegiatan pembangunan" text="Coba ubah filter status atau tahun."/>}
     {data.site.demo&&<div className="subtle-note"><ShieldCheck size={18}/><p>Kegiatan bertanda “(contoh)” adalah data demonstrasi, bukan laporan resmi desa.</p></div>}
     {selected&&<ProjectDetail project={selected} onClose={()=>select(null)}/>}</>;
 }
