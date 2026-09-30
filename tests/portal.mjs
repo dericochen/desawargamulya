@@ -36,7 +36,10 @@ export async function checkPortal(t,request){
     assert.equal((await request('/admin/portal/faqs/faq-2/move',{method:'POST',admin:true,body:{direction:-1}})).status,200);
     assert.equal((await request('/portal')).data.faqs[0].id,'faq-2');
     assert.equal((await request('/admin/portal/emergency_contacts/em-puskesmas',{method:'PUT',admin:true,body:{is_active:true}})).status,400,'active contact requires phone');
-    assert.equal((await request('/admin/portal/emergency_contacts/em-polsek',{method:'PUT',admin:true,body:{phone:'(021) 5555 0000'}})).status,200);
+    assert.equal((await request('/portal')).data.emergency.some(e=>e.scope==='lokal'),false,'unverified local numbers are hidden');
+    assert.equal((await request('/portal')).data.emergency.find(e=>e.id==='em-112').data_status,'sumber_pemerintah');
+    assert.equal((await request('/admin/portal/emergency_contacts/em-polsek',{method:'PUT',admin:true,body:{phone:'(021) 5555 0000',is_active:true,data_status:'terverifikasi'}})).status,200);
+    assert.equal((await request('/admin/portal/emergency_contacts/em-polsek',{method:'PUT',admin:true,body:{data_status:'resmi-palsu'}})).status,400);
     assert.equal((await request('/portal')).data.emergency.find(e=>e.id==='em-polsek').phone,'(021) 5555 0000');
   });
   await t.test('Area RT/RW units, chatbot validation and root protection',async()=>{
@@ -46,18 +49,21 @@ export async function checkPortal(t,request){
     assert.equal((await request('/admin/portal/chatbot_options',{method:'POST',admin:true,body:{node_id:'bot-root',option_number:8,label:'Tanpa tujuan',action:'goto'}})).status,400);
     assert.equal((await request('/admin/portal/chatbot_nodes/bot-root',{method:'DELETE',admin:true})).status,409);
   });
-  let ticket,complaint;
+  let ticket,pin,complaint;
   await t.test('Complaint gets sequential TIK ticket; tracking hides personal data',async()=>{
     assert.equal((await request('/complaints',{method:'POST',body:{...citizen,consent:false}})).status,400);
     assert.equal((await request('/complaints',{method:'POST',body:{...citizen,rt:'9',rw:'9'}})).status,400,'RT/RW must match the chosen dusun');
     assert.equal((await request('/complaints',{method:'POST',body:{...citizen,image:'https://tracker.example/x.png'}})).status,400);
     const a=await request('/complaints',{method:'POST',body:{...citizen,image:photo,status:'selesai'}});assert.equal(a.status,201);assert.equal(a.data.ticket,'TIK-001');assert.equal(a.data.status,'baru');
     const b=await request('/complaints',{method:'POST',body:{...citizen,village_area_id:'dusun-2',rt:'',rw:''}});assert.equal(b.data.ticket,'TIK-002');
-    ticket=a.data.ticket;
-    const s=await request('/complaints/status',{method:'POST',body:{ticket:'tik-1'}});assert.equal(s.status,200);assert.equal(s.data.ticket,'TIK-001');
+    ticket=a.data.ticket;pin=a.data.pin;assert.match(pin,/^\d{6}$/);
+    assert.equal((await request('/complaints/status',{method:'POST',body:{ticket:'TIK-001'}})).status,404,'ticket alone is not enough');
+    assert.equal((await request('/complaints/status',{method:'POST',body:{ticket:'TIK-002',pin}})).status,404,'PIN of another ticket is rejected');
+    const s=await request('/complaints/status',{method:'POST',body:{ticket:'tik-1',pin}});assert.equal(s.status,200);assert.equal(s.data.ticket,'TIK-001');
     for(const k of ['name','phone','body','location','image','title'])assert.equal(k in s.data,false,k+' must stay private');
-    assert.equal((await request('/complaints/status',{method:'POST',body:{ticket:'TIK-999'}})).status,404);
+    assert.equal((await request('/complaints/status',{method:'POST',body:{ticket:'TIK-999',pin}})).status,404);
     const list=(await request('/admin/complaints',{admin:true})).data;complaint=list.find(c=>c.ticket==='TIK-001');
+    assert.equal('pin_hash' in complaint,false,'PIN hash never leaves the server');assert.equal(complaint.has_pin,true);
     assert.equal(complaint.phone,'6281234567890');assert.equal((await request(complaint.image.slice(4))).status,404,'complaint photo is admin-only');
     assert.equal((await request(complaint.image.slice(4),{admin:true})).status,200);
   });
@@ -65,9 +71,20 @@ export async function checkPortal(t,request){
     assert.equal((await request('/admin/complaints/'+complaint.id,{method:'PUT',admin:true,body:{status:'ditolak',note:'',updated_at:complaint.updated_at}})).status,400);
     assert.equal((await request('/admin/complaints/'+complaint.id,{method:'PUT',admin:true,body:{status:'diproses',note:'x',updated_at:'old'}})).status,409);
     const r=await request('/admin/complaints/'+complaint.id,{method:'PUT',admin:true,body:{status:'diproses',note:'Petugas telah melakukan pengecekan lokasi.',updated_at:complaint.updated_at}});assert.equal(r.status,200);
-    const s=(await request('/complaints/status',{method:'POST',body:{ticket}})).data;
-    assert.equal(s.status,'diproses');assert.deepEqual(s.updates.map(u=>u.status),['baru','diproses']);assert.equal(s.updates[1].note,'Petugas telah melakukan pengecekan lokasi.');
-    const sum=(await request('/admin/summary',{admin:true})).data;assert.equal(sum.complaints.diproses,1);assert.equal(sum.complaints.baru,1);
+    const s=(await request('/complaints/status',{method:'POST',body:{ticket,pin}})).data;
+    assert.equal(s.status,'diproses');assert.equal(s.canFeedback,false);
+    assert.equal((await request('/complaints/feedback',{method:'POST',body:{ticket,pin,rating:5}})).status,409,'feedback only after completion');
+    const fresh=(await request('/admin/complaints/'+complaint.id,{admin:true})).data;
+    assert.equal((await request('/admin/complaints/'+complaint.id,{method:'PUT',admin:true,body:{status:'selesai',note:'Lampu sudah diganti.',updated_at:fresh.updated_at}})).status,200);
+    assert.equal((await request('/complaints/feedback',{method:'POST',body:{ticket,pin,rating:9}})).status,400);
+    assert.equal((await request('/complaints/feedback',{method:'POST',body:{ticket,pin,rating:4,note:'Cepat ditangani'}})).status,200);
+    assert.equal((await request('/complaints/feedback',{method:'POST',body:{ticket,pin,rating:5}})).status,409,'only once');
+    assert.deepEqual((await request('/complaints/status',{method:'POST',body:{ticket,pin}})).data.feedback,{rating:4,note:'Cepat ditangani'});
+    const reset=await request('/admin/complaints/'+complaint.id+'/pin',{method:'POST',admin:true});assert.equal(reset.status,200);
+    assert.equal((await request('/complaints/status',{method:'POST',body:{ticket,pin}})).status,404,'old PIN stops working');
+    pin=reset.data.pin;assert.equal((await request('/complaints/status',{method:'POST',body:{ticket,pin}})).status,200);assert.deepEqual(s.updates.map(u=>u.status),['baru','diproses']);assert.equal(s.updates[1].note,'Petugas telah melakukan pengecekan lokasi.');
+    const sum=(await request('/admin/summary',{admin:true})).data;assert.equal(sum.complaints.selesai,1);assert.equal(sum.complaints.baru,1);
+    assert.deepEqual(sum.byCategory,[{category:'Jalan Rusak',total:2}]);assert.deepEqual(sum.feedback,{total:1,average:4});
   });
   await t.test('Live chat: handover, unread, admin reply, private per token',async()=>{
     assert.equal((await request('/chat/start',{method:'POST',body:{name:'Siti',category:'Tidak ada',message:'Halo'}})).status,400);
@@ -165,10 +182,27 @@ export async function checkPortal(t,request){
     const s=(await request('/content')).data.site;
     assert.equal(s.heroSlides.length,2);assert.match(s.heroSlides[1].image,/^\/api\/media\//);assert.equal((await request(s.heroSlides[1].image.slice(4))).status,200);
     assert.match(s.logo,/^\/api\/media\//);assert.equal(s.heroButtons[0].href,'/peta-desa');assert.equal(s.backgroundStyle,'anyaman');
-    assert.equal(s.homeSections[0].key,'map');assert.equal(s.homeSections.find(x=>x.key==='news').visible,false);assert.equal(s.homeSections.length,12);assert.ok(!s.homeSections.some(x=>x.key==='bogus'));
+    assert.equal(s.homeSections[0].key,'map');assert.equal(s.homeSections.find(x=>x.key==='news').visible,false);assert.equal(s.homeSections.length,13);assert.ok(!s.homeSections.some(x=>x.key==='bogus'));
     const old=s.heroSlides[1].image;
     assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{heroSlides:[{image:'/images/pesisir-tangerang.jpg',caption:'Satu'}],logo:''}})).status,200);
     assert.equal((await request(old.slice(4),{admin:true})).status,404,'removed hero slide photo is deleted');
+  });
+  await t.test('Uploaded photos lose EXIF/GPS metadata on the server',async()=>{
+    const {stripMetadata}=await import('../server/image-meta.mjs');
+    const jpg=fs.readFileSync(new URL('../public/images/kantor-desa-marga-mulya.jpg',import.meta.url));
+    const exif=Buffer.concat([Buffer.from([0xFF,0xE1,0x00,0x18]),Buffer.from('Exif\0\0GPS-LOKASI-RUMAH')]);
+    const tagged=Buffer.concat([jpg.subarray(0,2),exif,jpg.subarray(2)]);
+    assert.ok(tagged.includes('GPS-LOKASI-RUMAH'));
+    const r=await request('/complaints',{method:'POST',body:{...citizen,images:['data:image/jpeg;base64,'+tagged.toString('base64')]}});assert.equal(r.status,201);
+    const row=(await request('/admin/complaints',{admin:true})).data.find(x=>x.ticket===r.data.ticket);
+    const stored=Buffer.from((await request(row.image.slice(4),{admin:true})).data);
+    assert.equal(stored.includes('GPS-LOKASI-RUMAH'),false,'EXIF removed');assert.equal(stored[0],0xFF);assert.equal(stored[1],0xD8);assert.equal(stored.length,jpg.length);
+    // PNG text chunk and WebP EXIF chunk are removed too.
+    const png=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.from('0000000474455874','hex'),Buffer.from('GPS!'),Buffer.alloc(4),Buffer.from('0000000049454e44ae426082','hex')]);
+    assert.equal(stripMetadata(png,'image/png').includes('GPS!'),false);
+    const webp=fs.readFileSync(new URL('../public/images/rice.webp',import.meta.url)),extra=Buffer.concat([Buffer.from('EXIF'),Buffer.from([8,0,0,0]),Buffer.from('GPSWEBP!')]);
+    const w=Buffer.concat([webp,extra]);w.writeUInt32LE(w.length-8,4);
+    const sw=stripMetadata(w,'image/webp');assert.equal(sw.includes('GPSWEBP!'),false);assert.equal(sw.readUInt32LE(4),sw.length-8);assert.equal(sw.length,webp.length);
   });
   await t.test('Project documentation and gallery ordering',async()=>{
     const u=await request('/admin/portal/project_updates',{method:'POST',admin:true,body:{project_id:'proyek-contoh-1',date:'2026-09-30',title:'Foto sesudah',phase:'selesai',image_url:photo}});assert.equal(u.status,201);

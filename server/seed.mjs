@@ -31,7 +31,7 @@ export const siteSeed = {
   heroSlides:[{image:'/images/pesisir-tangerang.jpg',caption:'Perahu nelayan di pesisir Tangerang (Pantai Tanjung Pasir) · foto ilustrasi'},{image:'/images/kantor-desa-marga-mulya.jpg',caption:'Kantor Desa Marga Mulya, 28 Agustus 2024 · Enperfectify World / CC BY-SA 4.0'}],
   heroButtons:[{label:'Mengenal desa',href:'/profil'},{label:'Jelajahi wisata pesisir',href:'/wisata'}],
   homeSections:homeSectionKeys.map(key=>({key,visible:true})),
-  logo:'', backgroundStyle:'budaya', designRevision:4,
+  logo:'', backgroundStyle:'budaya', designRevision:5,
   homeProfileTitle:'Desa pesisir di utara Mauk', regionLines:'Kecamatan Mauk\nKabupaten Tangerang\nProvinsi Banten', weatherPlace:'Mauk, Tangerang',
   tourismIntro:'Pantai-pantai di pesisir Tanjung Kait, Desa Marga Mulya.', marketIntro:'Kenali produk dan usaha yang tumbuh di lingkungan kita.',
   mapIntro:'Pantai, sekolah, layanan kesehatan, pemerintahan, dan keamanan di sekitar desa.', projectsIntro:'Kegiatan pembangunan desa beserta anggaran dan progresnya.',

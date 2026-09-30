@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {randomBytes,scryptSync,timingSafeEqual,createHash} from 'node:crypto';
 import {seedRecords,siteSeed} from './seed.mjs';
 import {portalDDL,SCHEMA_VERSION,extraImageColumns,homeSectionKeys,legacyHomeOrder} from './portal-schema.mjs';
-import {portalSeed,approxNote,officialSchools} from './portal-seed.mjs';
+import {portalSeed,approxNote,officialSchools,emergency112} from './portal-seed.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 let queryFn; let transactionFn; let ready; let closeFn=()=>{};
 // Releases the local SQLite file handle (used by tests so the temp folder can be deleted on Windows).
@@ -42,6 +42,7 @@ export async function init(){
     await migratePortal();
     await cleanupPortalContent();
     await addOfficialSchools();
+    await labelDataSources();
     const siteRows=await queryFn("SELECT data FROM records WHERE id='site'");
     if(siteRows.length){const site=JSON.parse(siteRows[0].data);if(upgradeSite(site))await queryFn("UPDATE records SET data=? WHERE id='site'",[JSON.stringify(site)]);}
     const auth=await queryFn("SELECT data FROM records WHERE id='__auth'");
@@ -63,8 +64,8 @@ async function migratePortal(){
   if(!version.length||JSON.parse(version[0].data).version!==SCHEMA_VERSION){
     for(const statement of portalDDL())await queryFn(statement);
     // Additive column migration; "already exists" errors mean the column was added earlier.
-    for(const [table,column] of extraImageColumns()){
-      try{await queryFn(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT '[]'`);}
+    for(const [table,column,type] of extraImageColumns()){
+      try{await queryFn(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);}
       catch(e){if(!/duplicate column|already exists/i.test(e.message))throw e;}
     }
     await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_schema','system','private',?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at",[JSON.stringify({version:SCHEMA_VERSION}),now]);
@@ -75,6 +76,19 @@ async function migratePortal(){
     await queryFn(`INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(()=>'?').join(',')}) ON CONFLICT(id) DO NOTHING`,[...Object.values(row),now,now]);
   }
   await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_seeded','system','private','{}',?) ON CONFLICT(id) DO NOTHING",[now]);
+}
+// One-time update (2026-10-01): label every public item with its data status and hide local emergency numbers
+// that the village has not verified. 112's description is corrected (availability depends on the local government).
+async function labelDataSources(){
+  if((await queryFn("SELECT id FROM records WHERE id='__portal_rev6'")).length)return;
+  const set=(table,status,where,args=[])=>queryFn(`UPDATE ${table} SET data_status=? WHERE data_status='perlu_verifikasi' AND ${where}`,[status,...args]);
+  await set('public_facilities','sumber_pemerintah',"description LIKE '%Kemendikdasmen%'");
+  await set('emergency_contacts','sumber_pemerintah',"scope='nasional'");
+  await set('development_projects','demo',"title LIKE '%(contoh)%'");
+  await set('aid_programs','demo',"name LIKE '%(contoh)%'");
+  await queryFn("UPDATE emergency_contacts SET is_active=0 WHERE scope='lokal' AND data_status<>'terverifikasi'");
+  await queryFn('UPDATE emergency_contacts SET description=? WHERE id=? AND description=?',[emergency112,'em-112','Satu nomor untuk berbagai keadaan darurat. Bebas pulsa.']);
+  await queryFn("INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__portal_rev6','system','private','{}',?) ON CONFLICT(id) DO NOTHING",[new Date().toISOString()]);
 }
 // One-time data update (2026-10-01): schools from the official Kemendikdasmen reference data. Existing seeded rows
 // are refreshed only while they still carry the demo note; new schools are inserted if missing.
@@ -128,6 +142,8 @@ function upgradeSite(site){
   }
   // Revision 3: Lapak Desa moves up on the homepage, but only when the admin never changed the section order.
   if(revision<3){if(JSON.stringify(site.homeSections)===JSON.stringify(legacyHomeOrder.map(key=>({key,visible:true}))))site.homeSections=homeSectionKeys.map(key=>({key,visible:true}));site.designRevision=Math.max(site.designRevision||0,3);changed=true;}
+  // Revision 5: new "Kondisi pesisir" homepage block, placed after the announcements.
+  if(revision<5){if(Array.isArray(site.homeSections)&&!site.homeSections.some(x=>x.key==='coastal')){const i=site.homeSections.findIndex(x=>x.key==='news');site.homeSections.splice(i<0?0:i+1,0,{key:'coastal',visible:true});}site.designRevision=Math.max(site.designRevision||0,5);changed=true;}
   // Replace untouched demo defaults that no longer fit a coastal village.
   if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;site.heroSlides=structuredClone(siteSeed.heroSlides);changed=true;}
   if(JSON.stringify(site.occupations)==='[{"label":"Pertanian","value":40},{"label":"Wiraswasta","value":27},{"label":"Karyawan","value":21},{"label":"Lainnya","value":12}]'){site.occupations=structuredClone(siteSeed.occupations);changed=true;}

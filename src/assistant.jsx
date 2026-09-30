@@ -107,6 +107,7 @@ export function EmergencySheet({contacts}){
   return <Modal title="Darurat" onClose={()=>setOpen(false)} className="sheet emergency-dialog">
     <p className="emergency-intro">Tekan <strong>TELEPON</strong> untuk langsung menghubungi. Utamakan keselamatan dan sebutkan lokasi dengan jelas.</p>
     {group('nasional','Nomor darurat nasional')}{group('lokal','Kontak lokal sekitar desa')}
+    {!contacts.some(c=>c.scope==='lokal'&&c.phone)&&<p className="small muted">Kontak lokal (Polsek, Puskesmas, pemadam, kantor desa) ditampilkan setelah nomornya diverifikasi pemerintah desa.</p>}
     {!contacts.length&&<Notice error>Daftar nomor belum tersedia. Hubungi 112.</Notice>}
   </Modal>;
 }

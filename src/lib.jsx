@@ -103,10 +103,13 @@ export function MapView(props){return <React.Suspense fallback={<div className={
 export function WhenVisible({children,minHeight=300}){const ref=useRef(),[shown,setShown]=useState(typeof IntersectionObserver==='undefined');useEffect(()=>{if(shown)return;const o=new IntersectionObserver(([e])=>{if(e.isIntersecting){setShown(true);o.disconnect();}},{rootMargin:'300px'});o.observe(ref.current);return()=>o.disconnect();},[shown]);return shown?children:<div ref={ref} style={{minHeight}}/>;}
 export function mapPoints(portal){
   return [
-    ...portal.tourism.map(t=>({id:t.id,name:t.name,category:'wisata',address:t.address,lat:t.latitude,lng:t.longitude,image:t.cover_image,href:'/wisata?lihat='+t.slug})),
-    ...portal.facilities.map(f=>({id:f.id,name:f.name,category:f.category,address:f.address,lat:f.latitude,lng:f.longitude,image:f.image_url}))
+    ...portal.tourism.map(t=>({id:t.id,name:t.name,category:'wisata',address:t.address,lat:t.latitude,lng:t.longitude,image:t.cover_image,href:'/wisata?lihat='+t.slug,status:t.data_status})),
+    ...portal.facilities.map(f=>({id:f.id,name:f.name,category:f.category,address:f.address,lat:f.latitude,lng:f.longitude,image:f.image_url,status:f.data_status}))
   ];
 }
+// Data status label (competition feedback: never let demo or estimated data look official).
+export const dataStatusInfo={perlu_verifikasi:['⚠','Perlu verifikasi','Lokasi atau keterangan masih perkiraan dan belum diverifikasi pemerintah desa.','warn'],terverifikasi:['✓','Terverifikasi desa','Sudah diperiksa pemerintah desa.','ok'],sumber_pemerintah:['✓','Sumber pemerintah','Diambil dari data resmi pemerintah.','gov'],demo:['◇','Data contoh','Contoh untuk demonstrasi, bukan data resmi desa.','demo']};
+export function DataBadge({status,long=false}){const d=dataStatusInfo[status];if(!d)return null;return <span className={'data-badge '+d[3]} title={d[2]}><span aria-hidden="true">{d[0]}</span> {d[1]}{long&&<span className="data-badge-note"> — {d[2]}</span>}</span>;}
 export function Placeholder({label='Foto belum tersedia',className=''}){return <div className={'photo-placeholder '+className} role="img" aria-label={label}><svg viewBox="0 0 120 40" aria-hidden="true"><path d="M0 28c10-6 20-6 30 0s20 6 30 0 20-6 30 0 20 6 30 0v12H0z"/><path d="M0 34c10-5 20-5 30 0s20 5 30 0 20-5 30 0 20 5 30 0v6H0z"/></svg><span>{label}</span></div>;}
 export function Photo({src,alt,className=''}){return src?<Picture src={src} alt={alt} className={className}/>:<Placeholder className={className}/>;}
 export function Progress({value,label='Progres'}){return <div className="progress"><div className="progress-top"><span>{label}</span><strong>{value}%</strong></div><div className="progress-track" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={label}><span style={{width:Math.max(0,Math.min(100,value))+'%'}}/></div></div>;}

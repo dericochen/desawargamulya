@@ -2,7 +2,7 @@ import {EventSignup,TrackRegistration} from './event-registration.jsx';
 import React,{useState,useEffect}from'react';
 import{CalendarDays,Store,Landmark,MapPin,Clock,ChevronRight,ChevronLeft,Search,Plus,Phone,Mail,Check,Info,Users,ExternalLink,Clipboard,CheckCircle,SlidersHorizontal}from'lucide-react';
 import{Link,Picture,dateLabel,money,Modal,PageIntro,Field,ImageField,Notice,Empty,api,today,statusLabel,navigate,MapView,mapPoints,WhenVisible,directionsUrl,HubTabs,param,Slides,MultiImageField,PhotoCount,imagesOf,CountUp}from'./lib.jsx';
-import{QuickAccess,Weather,GalleryCarousel,HeroSlider}from'./home-widgets.jsx';
+import{QuickAccess,Weather,GalleryCarousel,HeroSlider,CoastalCard}from'./home-widgets.jsx';
 import{homeSectionKeys}from'../server/portal-schema.mjs';
 const homeDefaults=homeSectionKeys.map(key=>({key,visible:true}));
 import{Tourism,TourismCard,MapPage,Transparency,ProjectCard}from'./portal-pages.jsx';
@@ -20,6 +20,7 @@ export function Home({data}){const{site:s,articles,events,products,portal}=data;
  const weather=<Weather lat={s.villageLat} lng={s.villageLng} timeZone={s.timezone} place={s.weatherPlace} title={'Cuaca '+s.name}/>;
  const blocks={
   quick:()=><QuickAccess site={s}/>,
+  coastal:()=><CoastalCard site={s}/>,
   news:()=><section className="container section"><div className="section-heading"><div><span className="eyebrow">PENGUMUMAN & KABAR PENTING</span><h2>{s.labels.news}</h2></div><Link href="/informasi" className="text-link">Semua informasi</Link></div><div className="news-layout"><div className="news-feature">{featured&&<Link href={'/informasi?baca='+featured.id}><Picture src={featured.image} alt={featured.imageCredit||featured.title}/><div><span className="tag">{featured.category}</span><h3>{featured.title}</h3><p>{featured.excerpt}</p><span className="muted small">{dateLabel(featured.date)}</span></div></Link>}</div><div className="agenda-aside"><div className="aside-heading"><CalendarDays/><h3>{s.labels.agenda}</h3></div>{events.filter(e=>!['Dibatalkan','Selesai'].includes(e.eventStatus)&&e.endDate>=today(s.timezone)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3).map(e=><Link href={'/informasi?tab=agenda&lihat='+e.id} className="event-row" key={e.id}><div className="date-block"><strong>{e.date.slice(8)}</strong><span>{dateLabel(e.date,{month:'short',day:undefined,year:undefined})}</span></div><div><h4>{e.title}</h4><p>{e.time} · {e.location}</p></div></Link>)}<Link href="/informasi?tab=agenda" className="text-link">Buka kalender desa</Link></div></div></section>,
   profile:()=><section className="profile-band"><div className={'container profile-weather '+(shown.has('weather')?'':'no-weather')}><div className="profile-brief"><span className="eyebrow">MENGENAL {s.name.toUpperCase()}</span><h2>{s.homeProfileTitle}</h2><p>{s.about}</p><p className="muted">{s.geography}</p><div className="form-actions"><Link className="button" href="/profil">Profil lengkap</Link><Link className="button secondary" href="/kontak"><MapPin/>Lokasi kantor desa</Link></div></div>{shown.has('weather')&&weather}</div></section>,
   weather:()=>shown.has('profile')?null:<section className="container section section-tight weather-only">{weather}</section>,

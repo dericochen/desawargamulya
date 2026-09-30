@@ -3,7 +3,7 @@ import React,{useEffect,useRef} from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {facilityCategories} from '../server/portal-schema.mjs';
-import {directionsUrl} from './lib.jsx';
+import {directionsUrl,dataStatusInfo} from './lib.jsx';
 
 const categoryInfo=Object.fromEntries(facilityCategories.map(([key,label,emoji])=>[key,{label,emoji}]));
 const el=(tag,props={},children=[])=>{const n=document.createElement(tag);Object.assign(n,props);for(const c of [].concat(children))if(c)n.append(c);return n;};
@@ -17,6 +17,7 @@ function popupContent(p){
     p.image&&el('img',{src:p.image,alt:'',loading:'lazy',className:'map-popup-image'}),
     el('span',{className:'map-popup-category',textContent:info.emoji+' '+info.label}),
     el('strong',{textContent:p.name}),
+    dataStatusInfo[p.status]&&el('span',{className:'data-badge '+dataStatusInfo[p.status][3],title:dataStatusInfo[p.status][2],textContent:dataStatusInfo[p.status][0]+' '+dataStatusInfo[p.status][1]}),
     p.address&&el('p',{textContent:p.address}),
     el('div',{className:'map-popup-actions'},links)
   ]);
@@ -42,6 +43,17 @@ const FullscreenControl=L.Control.extend({
   }
 });
 
+const TouchLockControl=L.Control.extend({
+  options:{position:'bottomleft'},
+  onAdd(map){
+    const button=L.DomUtil.create('button','map-touch-lock');button.type='button';
+    const sync=()=>{const on=map.dragging.enabled();button.textContent=on?'🔒 Kunci peta':'✋ Ketuk untuk menggeser peta';button.setAttribute('aria-pressed',String(on));map.getContainer().classList.toggle('map-locked',!on);};
+    map.dragging.disable();
+    L.DomEvent.disableClickPropagation(button);
+    L.DomEvent.on(button,'click',()=>{map.dragging.enabled()?map.dragging.disable():map.dragging.enable();sync();});
+    sync();return button;
+  }
+});
 export default function VillageMap({points,center,zoom=14,focusId,label='Peta interaktif desa',className=''}){
   const node=useRef(),map=useRef(),layer=useRef(),markers=useRef(new Map());
   useEffect(()=>{
@@ -50,6 +62,8 @@ export default function VillageMap({points,center,zoom=14,focusId,label='Peta in
     m.on('popupopen',e=>{const b=e.popup.getElement()?.querySelector('.leaflet-popup-close-button');if(b){b.setAttribute('aria-label','Tutup keterangan lokasi');b.title='Tutup';}});
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>'}).addTo(m);
     new FullscreenControl().addTo(m);
+    // Touch screens: one-finger swipes scroll the page until the visitor unlocks the map (pinch-zoom always works).
+    if(matchMedia('(pointer: coarse)').matches)new TouchLockControl().addTo(m);
     // Wheel zoom only after the user clicks the map, so scrolling the page is not hijacked.
     m.on('click',()=>m.scrollWheelZoom.enable());m.on('mouseout',()=>m.scrollWheelZoom.disable());
     layer.current=L.layerGroup().addTo(m);map.current=m;

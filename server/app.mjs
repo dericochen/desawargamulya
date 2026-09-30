@@ -4,6 +4,7 @@ import {query,transaction,getRecord,putRecord,parseRow,hash,verifyPassword,hashP
 import {validateEnrollment,saveEvent,publicEnrollment,mountRegistrations,refreshEventTimes} from './registrations.mjs';
 import {mountPortal,portalMediaVisible,pruneMedia,imageList} from './portal.mjs';
 import {homeSectionKeys} from './seed.mjs';
+import {stripMetadata} from './image-meta.mjs';
 const app=express();
 app.disable('x-powered-by');
 // Up to 3 compressed photos per form (hero slides: 5) fit comfortably below Vercel's 4.5 MB request limit.
@@ -53,7 +54,9 @@ async function persistImage(value,recordId){
   const limit=Number(process.env.MEDIA_LIMIT_MB||300)*1024*1024;
   const used=Number((await query('SELECT COALESCE(SUM(LENGTH(content)),0) AS total FROM media'))[0].total);
   if(used+match[2].length>limit)throw fail('Ruang penyimpanan foto hampir penuh. Hapus foto lama yang tidak dipakai, lalu coba lagi.',507);
-  const id=randomUUID();await query('INSERT INTO media(id,record_id,mime,content) VALUES(?,?,?,?)',[id,recordId,match[1],match[2]]);
+  // Location (GPS) and other metadata are removed on the server, even if the browser did not re-encode the photo.
+  const clean=stripMetadata(Buffer.from(match[2],'base64'),match[1]).toString('base64');
+  const id=randomUUID();await query('INSERT INTO media(id,record_id,mime,content) VALUES(?,?,?,?)',[id,recordId,match[1],clean]);
   return '/api/media/'+id;
 }
 const dateSafe=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s;

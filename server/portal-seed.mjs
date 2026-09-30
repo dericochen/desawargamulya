@@ -37,8 +37,10 @@ const facilities=[
   ['fas-spbu','SPBU Pertamina 34.155.03','spbu','Jl. Raya Mauk Km 17, Kedung Dalem, Kec. Mauk, Kabupaten Tangerang, Banten',-6.075510,106.538380,'(021) 59330508','','SPBU terdekat di jalur Jl. Raya Mauk.']
 ].map(([id,name,category,address,latitude,longitude,phone,image_url,description])=>({table:'public_facilities',row:{id,name,category,description:description||source,address,latitude,longitude,phone,opening_hours:'',image_url,is_active:1}}));
 
+// 112 is run by each regional government, so availability can differ per area.
+export const emergency112='Layanan darurat terpadu yang dikelola pemerintah daerah; bebas pulsa. Jika tidak tersambung, hubungi 110, 119, atau 113.';
 const emergency=[
-  ['em-112','Layanan Darurat Terintegrasi','112','darurat','nasional','Satu nomor untuk berbagai keadaan darurat. Bebas pulsa.',1],
+  ['em-112','Layanan Darurat Terintegrasi','112','darurat','nasional',emergency112,1],
   ['em-110','Polisi','110','polisi','nasional','Laporan kejahatan dan gangguan keamanan.',2],
   ['em-119','Darurat Medis / Ambulans','119','medis','nasional','Layanan kegawatdaruratan medis.',3],
   ['em-113','Pemadam Kebakaran','113','pemadam','nasional','Kebakaran dan penyelamatan.',4],

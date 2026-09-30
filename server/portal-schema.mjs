@@ -1,6 +1,6 @@
 // Portal Digital Desa — table definitions shared by the migration, server-side validation,
 // the generic admin CRUD API and the admin forms. Pure module: safe to import from the browser.
-export const SCHEMA_VERSION='portal-v2';
+export const SCHEMA_VERSION='portal-v3';
 
 export const facilityCategories=[
   ['wisata','Wisata','🏖'],['kesehatan','Kesehatan','🏥'],['apotek','Apotek','💊'],['polisi','Polisi','🚓'],
@@ -13,7 +13,7 @@ export const mapFilters=[
   ['pendidikan','Pendidikan',['sekolah']],['pemerintahan','Pemerintahan',['pemerintahan']],
   ['keamanan','Keamanan',['polisi','pemadam']],['olahraga','Olahraga & taman',['olahraga','taman']],['atm','ATM',['atm']],['lainnya','Lainnya',['spbu','lainnya']]
 ];
-export const complaintCategories=['Infrastruktur','Jalan Rusak','Sampah','Drainase','Lampu Jalan','Pelayanan Desa','Keamanan','Bantuan Sosial','Lingkungan','Lainnya'];
+export const complaintCategories=['Infrastruktur','Jalan Rusak','Sampah','Sampah Pantai','Drainase','Banjir / Rob','Lampu Jalan','Pelayanan Desa','Keamanan','Bantuan Sosial','Lingkungan','Lainnya'];
 export const complaintStatuses=[['baru','BARU'],['diverifikasi','DIVERIFIKASI'],['diproses','DIPROSES'],['selesai','SELESAI'],['ditolak','DITOLAK']];
 export const chatCategories=['Administrasi surat','Bantuan sosial','Pengaduan','Wisata','Informasi umum','Lainnya'];
 export const botActions=[
@@ -30,6 +30,9 @@ const num=(label,min,max,o={})=>({type:'num',label,min,max,...o});
 const bool=(label,def=true,o={})=>({type:'bool',label,def,...o});
 const choice=(label,options,o={})=>({type:'enum',label,options,...o});
 const image=(label='Foto',o={})=>({type:'image',label,...o});
+// Source/quality label shown next to public data so demo, estimated and official data are never confused.
+export const dataStatuses=[['perlu_verifikasi','Perlu verifikasi'],['terverifikasi','Terverifikasi desa'],['sumber_pemerintah','Sumber pemerintah'],['demo','Data contoh']];
+const dataStatus=()=>choice('Status data',dataStatuses,{def:'perlu_verifikasi',help:'Tampil sebagai label di website. Pilih “Terverifikasi desa” hanya setelah dicek pemerintah desa.'});
 const ref=(label,table,o={})=>({type:'ref',label,table,...o});
 const phone=(label='Nomor telepon',o={})=>({type:'phone',label,...o});
 const date=(label,o={})=>({type:'date',label,...o});
@@ -51,6 +54,7 @@ export const tables={
       ticket_information:text('Harga tiket',500,{help:'Kosongkan jika belum ada sumber resmi.'}),
       phone:phone('Kontak pengelola'),
       facilities:long('Fasilitas — satu per baris',2000),
+      data_status:dataStatus(),
       is_active:bool('Tampilkan destinasi'),
       sort_order:int('Urutan tampil',0,9999,{def:100})
     },
@@ -69,6 +73,7 @@ export const tables={
       phone:phone(),
       opening_hours:text('Jam operasional',300),
       image_url:image('Foto'),
+      data_status:dataStatus(),
       is_active:bool('Tampilkan marker di peta')
     }},
 
@@ -109,6 +114,7 @@ export const tables={
       scope:choice('Cakupan',[['nasional','Nomor nasional'],['lokal','Kontak lokal']]),
       description:text('Keterangan',300),
       priority:int('Prioritas (angka kecil tampil lebih dulu)',0,999,{def:50}),
+      data_status:dataStatus(),
       is_active:bool('Tampilkan ke publik')
     },
     check(r){if(r.is_active&&!r.phone)return 'Nomor telepon wajib diisi sebelum kontak ditampilkan.';}},
@@ -135,6 +141,7 @@ export const tables={
       progress:int('Progres (%)',0,100),
       status:choice('Status',['Direncanakan','Berjalan','Selesai','Ditunda']),
       cover_image:image('Foto utama'),
+      data_status:dataStatus(),
       is_published:bool('Terbitkan'),
       sort_order:int('Urutan',0,9999,{def:100})
     },
@@ -162,6 +169,7 @@ export const tables={
       description:long('Keterangan',6000),
       show_recipients:bool('Tampilkan daftar penerima (nama disamarkan)',false,{help:'Aktifkan hanya jika pemerintah desa mengizinkan publikasi.'}),
       cover_image:image('Foto program'),
+      data_status:dataStatus(),
       is_published:bool('Terbitkan'),
       sort_order:int('Urutan',0,9999,{def:100})
     },
@@ -185,6 +193,7 @@ function columnSql(name,f){
     case 'bigint':return `${name} BIGINT NOT NULL DEFAULT 0`;
     case 'num':return `${name} DOUBLE PRECISION${f.required?' NOT NULL':''}`;
     case 'bool':return `${name} INTEGER NOT NULL DEFAULT ${f.def===false?0:1}`;
+    case 'enum':{const d=f.def??(Array.isArray(f.options[0])?f.options[0][0]:f.options[0]);return `${name} TEXT NOT NULL DEFAULT '${String(d).replace(/'/g,"''")}'`;}
     case 'ref':return `${name} TEXT${f.required?' NOT NULL':''} REFERENCES ${f.table}(id) ON DELETE ${f.required?'CASCADE':'SET NULL'}`;
     default:return `${name} TEXT NOT NULL DEFAULT ''`;
   }
@@ -192,13 +201,19 @@ function columnSql(name,f){
 // Every image field may hold up to MAX_IMAGES photos: the first in the column itself, the rest as a JSON list in <field>_more.
 export const MAX_IMAGES=3;
 // Homepage blocks the admin can show/hide and reorder (the hero slideshow is always first).
-export const homeSectionKeys=['quick','news','market','profile','weather','tourism','projects','stats','gallery','latest','map','contact'];
+export const homeSectionKeys=['quick','news','coastal','market','profile','weather','tourism','projects','stats','gallery','latest','map','contact'];
 // Default order before design revision 3 (used to migrate untouched homepage settings only).
 export const legacyHomeOrder=['quick','news','profile','weather','market','tourism','projects','stats','gallery','latest','map','contact'];
-export const homeSectionLabels={quick:'Akses cepat layanan',news:'Pengumuman & agenda terdekat',profile:'Profil singkat desa',weather:'Cuaca',market:'Lapak desa (produk UMKM warga)',tourism:'Wisata desa',projects:'Pembangunan terbaru',stats:'Data desa singkat',gallery:'Galeri desa (slide)',latest:'Berita terbaru',map:'Peta desa',contact:'Kontak'};
+export const homeSectionLabels={quick:'Akses cepat layanan',news:'Pengumuman & agenda terdekat',coastal:'Kondisi pesisir (gelombang, angin, lapor cepat)',profile:'Profil singkat desa',weather:'Cuaca',market:'Lapak desa (produk UMKM warga)',tourism:'Wisata desa',projects:'Pembangunan terbaru',stats:'Data desa singkat',gallery:'Galeri desa (slide)',latest:'Berita terbaru',map:'Peta desa',contact:'Kontak'};
+// Columns added after the first release. Applied with ALTER TABLE ... ADD COLUMN (additive, never destructive).
 export const extraImageColumns=()=>[
-  ...Object.entries(tables).flatMap(([table,def])=>Object.entries(def.fields).filter(([,f])=>f.type==='image').map(([k])=>[table,k+'_more'])),
-  ['complaints','image_more']
+  ...Object.entries(tables).flatMap(([table,def])=>Object.entries(def.fields).filter(([,f])=>f.type==='image').map(([k])=>[table,k+'_more',"TEXT NOT NULL DEFAULT '[]'"])),
+  ['complaints','image_more',"TEXT NOT NULL DEFAULT '[]'"],
+  ...Object.entries(tables).flatMap(([table,def])=>def.fields.data_status?[[table,'data_status',columnSql('data_status',def.fields.data_status).replace(/^data_status /,'')]]:[]),
+  ['complaints','pin_hash',"TEXT NOT NULL DEFAULT ''"],
+  ['complaints','feedback_rating','INTEGER NOT NULL DEFAULT 0'],
+  ['complaints','feedback_note',"TEXT NOT NULL DEFAULT ''"],
+  ['complaints','feedback_at',"TEXT NOT NULL DEFAULT ''"]
 ];
 // Idempotent DDL (CREATE ... IF NOT EXISTS) valid for both SQLite and PostgreSQL. Parents come before children.
 export function portalDDL(){

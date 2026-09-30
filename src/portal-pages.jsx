@@ -1,7 +1,7 @@
 // Public Portal Desa pages: tourism, village map, development projects, social aid and global search.
 import React,{useEffect,useMemo,useState} from 'react';
 import {MapPin,Navigation,Phone,Clock,Ticket,ListChecks,Images,Search,Map as MapIcon,CalendarDays,Wallet,Landmark,HardHat,HeartHandshake,CircleHelp,Newspaper,Building2,ShieldCheck,ChevronLeft,ChevronRight} from 'lucide-react';
-import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs,Slides,PhotoCount,imagesOf} from './lib.jsx';
+import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs,Slides,PhotoCount,imagesOf,DataBadge} from './lib.jsx';
 import {mapFilters,facilityCategories} from '../server/portal-schema.mjs';
 
 const categoryLabel=Object.fromEntries(facilityCategories.map(([k,l,e])=>[k,e+' '+l]));
@@ -17,7 +17,7 @@ const Fact=({icon:Icon,label,children})=><div className="fact"><Icon aria-hidden
 export function TourismCard({place:t,onDetail}){
   return <article className="tourism-card">
     <div className="card-photo"><Photo src={t.cover_image} alt={'Foto '+t.name} className="tourism-photo"/><PhotoCount n={imagesOf(t,'cover_image').length+t.gallery.reduce((n,g)=>n+imagesOf(g,'image_url').length,0)}/></div>
-    <div className="tourism-body"><span className="tag">{t.category||'Wisata'}</span><h3>{t.name}</h3>
+    <div className="tourism-body"><div className="tag-row"><span className="tag">{t.category||'Wisata'}</span><DataBadge status={t.data_status}/></div><h3>{t.name}</h3>
       <p className="tourism-address"><MapPin size={16} aria-hidden="true"/>{t.address}</p>
       {t.short_description&&<p className="tourism-summary">{t.short_description}</p>}
       <div className="card-actions"><button className="button" onClick={()=>onDetail(t)}>Lihat Detail</button><Link className="button secondary" href={'/peta-desa?lokasi='+t.id}><MapIcon/>Lihat di Peta</Link></div>
@@ -29,7 +29,7 @@ function TourismDetail({place:t,onClose}){
   const photos=[...imagesOf(t,'cover_image').map(src=>({src,caption:t.name})),...t.gallery.flatMap(g=>imagesOf(g,'image_url').map(src=>({src,caption:g.caption||t.name})))];
   return <Modal title={t.name} wide onClose={onClose}>
     <Slides images={photos.map(p=>p.src)} captions={photos.map(p=>p.caption)} alt={t.name} className="detail-cover tourism-detail-photo"/>
-    <div className="article-meta"><span className="tag">{t.category||'Wisata'}</span></div>
+    <div className="article-meta"><span className="tag">{t.category||'Wisata'}</span><DataBadge status={t.data_status} long/></div>
     <p className="prose-text">{t.description||t.short_description||'Deskripsi belum tersedia.'}</p>
     <dl className="fact-list">
       <Fact icon={MapPin} label="Alamat">{t.address}</Fact>
@@ -63,7 +63,7 @@ export function MapPage({data}){
     <MapView points={points} center={[s.villageLat,s.villageLng]} zoom={14} focusId={focus} className="map-large" label={'Peta interaktif '+s.identity}/>
     <p className="small muted map-hint">Klik peta terlebih dahulu untuk memperbesar dengan roda tetikus. Di ponsel, gunakan dua jari. Data peta © kontributor OpenStreetMap.</p>
     <section className="location-list" aria-labelledby="daftar-lokasi"><h2 id="daftar-lokasi">Daftar lokasi ({points.length})</h2>
-      {points.length?<ul>{points.map(p=><li key={p.id}><div><span className="map-list-category">{categoryLabel[p.category]||p.category}</span><strong>{p.name}</strong><p>{p.address}</p></div><div className="location-actions"><button className="button secondary" onClick={()=>{setFocus('');setTimeout(()=>setFocus(p.id));window.scrollTo({top:document.querySelector('.map-large')?.getBoundingClientRect().top+window.scrollY-90,behavior:'smooth'});}}>Tampilkan di peta</button><a className="button secondary" href={directionsUrl(p.lat,p.lng)} target="_blank" rel="noreferrer"><Navigation/>Petunjuk Arah</a></div></li>)}</ul>:<Empty title="Tidak ada lokasi pada kategori ini"/>}
+      {points.length?<ul>{points.map(p=><li key={p.id}><div><span className="map-list-category">{categoryLabel[p.category]||p.category}</span> <DataBadge status={p.status}/><strong>{p.name}</strong><p>{p.address}</p></div><div className="location-actions"><button className="button secondary" onClick={()=>{setFocus('');setTimeout(()=>setFocus(p.id));window.scrollTo({top:document.querySelector('.map-large')?.getBoundingClientRect().top+window.scrollY-90,behavior:'smooth'});}}>Tampilkan di peta</button><a className="button secondary" href={directionsUrl(p.lat,p.lng)} target="_blank" rel="noreferrer"><Navigation/>Petunjuk Arah</a></div></li>)}</ul>:<Empty title="Tidak ada lokasi pada kategori ini"/>}
     </section></>;
 }
 
@@ -71,7 +71,7 @@ export const projectStatusClass={Direncanakan:'pending',Berjalan:'revision',Sele
 const budgetLabel=n=>n>0?money(n):'Belum diumumkan';
 export function ProjectCard({project:p,onDetail}){
   return <article className="project-card"><div className="card-photo"><Photo src={p.cover_image} alt={'Foto '+p.title} className="project-photo"/><PhotoCount n={imagesOf(p,'cover_image').length}/></div><div className="project-body">
-    <span className={'status '+projectStatusClass[p.status]}>{p.status}</span><h3>{p.title}</h3><Progress value={p.progress}/>
+    <div className="tag-row"><span className={'status '+projectStatusClass[p.status]}>{p.status}</span><DataBadge status={p.data_status}/></div><h3>{p.title}</h3><Progress value={p.progress}/>
     <dl className="project-facts"><div><dt>Anggaran</dt><dd>{budgetLabel(p.budget)}</dd></div><div><dt>Sumber dana</dt><dd><Unknown>{p.funding_source}</Unknown></dd></div><div><dt>Tahun</dt><dd>{p.year}</dd></div><div><dt>Lokasi</dt><dd>{[p.area_name,p.location].filter(Boolean).join(' · ')}</dd></div></dl>
     <button className="button secondary full" onClick={()=>onDetail(p)}>Lihat Detail</button></div></article>;
 }
@@ -79,7 +79,7 @@ function ProjectDetail({project:p,onClose}){
   const phases=[['sebelum','Foto sebelum'],['proses','Foto proses'],['selesai','Foto selesai']];const photos=p.updates.filter(u=>u.image_url);
   return <Modal title={p.title} wide onClose={onClose}>
     <Slides images={imagesOf(p,'cover_image')} alt={p.title} className="detail-cover"/>
-    <div className="article-meta"><span className={'status '+projectStatusClass[p.status]}>{p.status}</span><span>Tahun {p.year}</span></div>
+    <div className="article-meta"><span className={'status '+projectStatusClass[p.status]}>{p.status}</span><span>Tahun {p.year}</span><DataBadge status={p.data_status} long/></div>
     <Progress value={p.progress}/>
     {p.description&&<p className="prose-text">{p.description}</p>}
     <dl className="detail-table">{[['Lokasi',p.location],['Dusun',p.area_name],['RT / RW',p.rt||p.rw?`RT ${p.rt||'—'} / RW ${p.rw||'—'}`:''],['Tahun',p.year],['Sumber dana',p.funding_source],['Anggaran',budgetLabel(p.budget)],['Pelaksana',p.contractor],['Tanggal mulai',dateLabel(p.start_date)],['Target selesai',dateLabel(p.target_date)],['Status',p.status]].map(([k,v])=><div key={k}><dt>{k}</dt><dd><Unknown>{v}</Unknown></dd></div>)}</dl>
@@ -116,7 +116,7 @@ function AidDetail({program:p,areas,onClose}){
   const stages=[...new Set(p.documentation.map(d=>d.stage||'Dokumentasi'))];
   return <Modal title={p.name} wide onClose={onClose}>
     {imagesOf(p,'cover_image').length>0&&<Slides images={imagesOf(p,'cover_image')} alt={p.name} className="detail-cover"/>}
-    <div className="article-meta"><span className={'status '+projectStatusClass[{Persiapan:'Direncanakan',Penyaluran:'Berjalan',Selesai:'Selesai',Ditunda:'Ditunda'}[p.status]]}>{p.status}</span><span>Tahun {p.year}</span></div>
+    <div className="article-meta"><span className={'status '+projectStatusClass[{Persiapan:'Direncanakan',Penyaluran:'Berjalan',Selesai:'Selesai',Ditunda:'Ditunda'}[p.status]]}>{p.status}</span><span>Tahun {p.year}</span><DataBadge status={p.data_status} long/></div>
     {p.description&&<p className="prose-text">{p.description}</p>}
     <dl className="detail-table">{[['Nama program',p.name],['Tahun',p.year],['Sumber dana',p.funding_source],['Jumlah penerima',p.recipient_count?numberLabel(p.recipient_count)+' penerima':''],['Status',p.status]].map(([k,v])=><div key={k}><dt>{k}</dt><dd><Unknown>{v}</Unknown></dd></div>)}</dl>
     {Object.keys(p.distribution).length>0&&<div className="distribution">{Object.entries(p.distribution).map(([k,v])=><div key={k}><strong>{numberLabel(v)}</strong><span>{k}</span></div>)}</div>}
@@ -129,7 +129,7 @@ export function Aid({data,embedded}){
   const list=data.portal.aid,[selected,select]=useDetail(list);
   return <>{embedded?<p className="hub-intro-text">{data.site.pages.bantuan.intro}</p>:<PageIntro {...data.site.pages.bantuan}>{data.site.pages.bantuan.intro}</PageIntro>}
     <h2 className="section-title">Program bantuan</h2>
-    {list.length?<div className="aid-grid">{list.map(p=><button key={p.id} className="aid-card" onClick={()=>select(p)}><HeartHandshake aria-hidden="true"/><div><h3>{p.name}</h3><p>{p.year} · {p.funding_source||'Sumber dana belum diumumkan'}</p><p><strong>{p.recipient_count?numberLabel(p.recipient_count)+' penerima':'Jumlah penerima belum diumumkan'}</strong></p></div><span className="status">{p.status}</span></button>)}</div>:<Empty title="Belum ada program bantuan yang diumumkan"/>}
+    {list.length?<div className="aid-grid">{list.map(p=><button key={p.id} className="aid-card" onClick={()=>select(p)}><HeartHandshake aria-hidden="true"/><div><h3>{p.name}</h3><p>{p.year} · {p.funding_source||'Sumber dana belum diumumkan'}</p><p><strong>{p.recipient_count?numberLabel(p.recipient_count)+' penerima':'Jumlah penerima belum diumumkan'}</strong></p><DataBadge status={p.data_status}/></div><span className="status">{p.status}</span></button>)}</div>:<Empty title="Belum ada program bantuan yang diumumkan"/>}
     <div className="subtle-note"><ShieldCheck size={18}/><p>Untuk memastikan status bantuan pribadi, datang ke Kantor Desa dengan membawa KTP. Website tidak meminta atau menampilkan NIK.</p></div>
     {selected&&<AidDetail program={selected} areas={data.portal.areas} onClose={()=>select(null)}/>}</>;
 }

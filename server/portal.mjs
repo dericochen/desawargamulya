@@ -1,6 +1,6 @@
 // Portal Digital Desa API: generic admin CRUD for schema tables, public portal data,
 // complaints with TIK-xxx tickets, and token-based citizen ↔ admin chat.
-import {randomBytes,randomUUID} from 'node:crypto';
+import {randomBytes,randomUUID,randomInt} from 'node:crypto';
 import {query,transaction,hash} from './db.mjs';
 import {tables,complaintCategories,complaintStatuses,chatCategories,ticketLabel,MAX_IMAGES} from './portal-schema.mjs';
 
@@ -54,7 +54,7 @@ async function validateRow(table,input,old,id,{imageSafe,persistImage}){
       case 'int':case 'bigint':{const n=v===''||v==null?(f.def??0):Number(v);if(!Number.isInteger(n)||n<f.min||n>f.max)throw fail(`${f.label} harus berupa angka bulat ${f.min}–${new Intl.NumberFormat('id-ID').format(f.max)}.`);out[k]=n;break;}
       case 'num':{if(v===''||v==null){if(f.required)throw fail(`${f.label} wajib diisi.`);out[k]=null;break;}const n=Number(v);if(!Number.isFinite(n)||n<f.min||n>f.max)throw fail(`${f.label} tidak valid.`);out[k]=n;break;}
       case 'bool':out[k]=v===true||v===1||v==='1'||v==='true'?1:0;break;
-      case 'enum':{const opts=optionValues(f),s=v==null?opts[0]:String(v);if(!opts.includes(s))throw fail(`${f.label} tidak valid.`);out[k]=s;break;}
+      case 'enum':{const opts=optionValues(f),s=v==null||v===''?(f.def??opts[0]):String(v);if(!opts.includes(s))throw fail(`${f.label} tidak valid.`);out[k]=s;break;}
       case 'date':{const s=str(v,10);if(s&&!dateSafe(s))throw fail(`${f.label} tidak valid.`);if(f.required&&!s)throw fail(`${f.label} wajib diisi.`);out[k]=s;break;}
       case 'phone':{const s=str(v,25);if(s&&!/^\+?[\d\s().-]{3,25}$/.test(s))throw fail(`${f.label} hanya boleh berisi angka, spasi, tanda kurung, atau tanda hubung.`);out[k]=s;break;}
       case 'image':{
@@ -182,6 +182,17 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
   });
 
   // ---------- Complaints (pengaduan) ----------
+  // Ticket numbers (TIK-001) are easy to share but sequential, so tracking also needs a private 6-digit PIN.
+  const newPin=()=>String(randomInt(0,1000000)).padStart(6,'0');
+  const pinHash=(id,pin)=>hash('complaint-pin:'+id+':'+pin);
+  async function complaintByTicket(body){
+    const m=str(body?.ticket,20).toUpperCase().replace(/\s/g,'').match(/^(?:TIK-?)?(\d{1,7})$/),pin=str(body?.pin,10).replace(/\s/g,'');
+    const rows=m?await query('SELECT * FROM complaints WHERE ticket_no=?',[Number(m[1])]):[];
+    const c=rows[0];
+    if(c&&!c.pin_hash)throw fail('Pengaduan ini dibuat sebelum PIN diberlakukan. Hubungi Kantor Desa untuk mendapatkan PIN.',403);
+    if(!c||!/^\d{6}$/.test(pin)||pinHash(c.id,pin)!==c.pin_hash)throw fail('Nomor tiket atau PIN tidak sesuai. Periksa kembali, misalnya TIK-023 dan PIN 6 angka.',404);
+    return c;
+  }
   app.post('/api/complaints',async(req,res)=>{
     const b=req.body||{};if(b.website)throw fail('Pengaduan tidak dapat diproses.');
     const name=required(b.name,'Nama',3,120),phone=normalizePhone(b.phone);
@@ -197,26 +208,41 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
     if(photos.some(p=>typeof p!=='string'||!p.startsWith('data:image/')))throw fail('Unggah foto berformat JPG, PNG, atau WebP.');
     const images=photos.map(p=>imageSafe(p));
     await rate(req,'complaint',6,60);
-    const id=randomUUID(),stamp=now();
+    const id=randomUUID(),stamp=now(),pin=newPin();
     const counter=await query("UPDATE counters SET value=value+1 WHERE name='complaint' RETURNING value");
     const ticketNo=Number(counter[0].value);
     const stored=[];for(const img of images)stored.push(await persistImage(img,'complaint:'+id));
     await transaction([
-      {sql:'INSERT INTO complaints (id,ticket_no,name,phone,village_area_id,area_name,rt,rw,category,title,body,location,image,image_more,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',args:[id,ticketNo,name,phone,area?.id||null,area?.name||'',rtRw.rt,rtRw.rw,b.category,title,body,location,stored[0]||'',JSON.stringify(stored.slice(1)),'baru',stamp,stamp]},
+      {sql:'INSERT INTO complaints (id,ticket_no,name,phone,village_area_id,area_name,rt,rw,category,title,body,location,image,image_more,pin_hash,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',args:[id,ticketNo,name,phone,area?.id||null,area?.name||'',rtRw.rt,rtRw.rw,b.category,title,body,location,stored[0]||'',JSON.stringify(stored.slice(1)),pinHash(id,pin),'baru',stamp,stamp]},
       {sql:'INSERT INTO complaint_updates (id,complaint_id,status,note,created_at) VALUES (?,?,?,?,?)',args:[randomUUID(),id,'baru','Pengaduan diterima dan menunggu verifikasi petugas.',stamp]}
     ]);
-    res.status(201).json({ticket:ticketLabel(ticketNo),status:'baru'});
+    res.status(201).json({ticket:ticketLabel(ticketNo),pin,status:'baru'});
   });
   app.post('/api/complaints/status',async(req,res)=>{
-    await rate(req,'complaint-track',30,10);
-    const m=str(req.body?.ticket,20).toUpperCase().replace(/\s/g,'').match(/^(?:TIK-?)?(\d{1,7})$/);
-    const rows=m?await query('SELECT * FROM complaints WHERE ticket_no=?',[Number(m[1])]):[];
-    if(!rows.length)throw fail('Nomor tiket tidak ditemukan. Periksa kembali, misalnya TIK-023.',404);
-    const c=rows[0],updates=await query('SELECT status,note,created_at FROM complaint_updates WHERE complaint_id=? ORDER BY created_at',[c.id]);
+    await rate(req,'complaint-track',20,10);
+    const c=await complaintByTicket(req.body),updates=await query('SELECT status,note,created_at FROM complaint_updates WHERE complaint_id=? ORDER BY created_at',[c.id]);
     // Only non-personal fields: name, phone, description, location and photo stay with the admin.
-    res.json({ticket:ticketLabel(c.ticket_no),category:c.category,area:c.area_name,status:c.status,createdAt:c.created_at,updatedAt:c.updated_at,updates});
+    res.json({ticket:ticketLabel(c.ticket_no),category:c.category,area:c.area_name,status:c.status,createdAt:c.created_at,updatedAt:c.updated_at,updates,
+      feedback:Number(c.feedback_rating)?{rating:Number(c.feedback_rating),note:c.feedback_note}:null,canFeedback:c.status==='selesai'&&!Number(c.feedback_rating)});
   });
-  const complaintRow=c=>({...c,ticket_no:Number(c.ticket_no),ticket:ticketLabel(c.ticket_no),image_more:parseList(c.image_more)});
+  // Citizens rate how their completed complaint was handled (once per ticket).
+  app.post('/api/complaints/feedback',async(req,res)=>{
+    await rate(req,'complaint-feedback',10,60);
+    const c=await complaintByTicket(req.body),rating=Number(req.body.rating),note=str(req.body.note,500);
+    if(!Number.isInteger(rating)||rating<1||rating>5)throw fail('Pilih penilaian 1 sampai 5.');
+    if(note.length>500)throw fail('Komentar maksimal 500 karakter.');
+    if(c.status!=='selesai')throw fail('Penilaian dapat diberikan setelah pengaduan selesai.',409);
+    const r=await query('UPDATE complaints SET feedback_rating=?,feedback_note=?,feedback_at=? WHERE id=? AND feedback_rating=0 RETURNING id',[rating,note,now(),c.id]);
+    if(!r.length)throw fail('Penilaian untuk tiket ini sudah dikirim.',409);
+    res.json({ok:true});
+  });
+  const complaintRow=({pin_hash,...c})=>({...c,ticket_no:Number(c.ticket_no),ticket:ticketLabel(c.ticket_no),image_more:parseList(c.image_more),feedback_rating:Number(c.feedback_rating||0),has_pin:!!pin_hash});
+  // Admin creates a new PIN for a resident who lost it (shown once, then only its hash is stored).
+  app.post('/api/admin/complaints/:id/pin',auth,async(req,res)=>{
+    const pin=newPin(),r=await query('UPDATE complaints SET pin_hash=? WHERE id=? RETURNING ticket_no',[pinHash(req.params.id,pin),req.params.id]);
+    if(!r.length)throw fail('Pengaduan tidak ditemukan.',404);
+    res.json({pin,ticket:ticketLabel(r[0].ticket_no)});
+  });
   app.get('/api/admin/complaints',auth,async(req,res)=>res.json((await query('SELECT * FROM complaints ORDER BY ticket_no DESC LIMIT 2000')).map(complaintRow)));
   app.get('/api/admin/complaints/:id',auth,async(req,res)=>{
     const rows=await query('SELECT * FROM complaints WHERE id=?',[req.params.id]);if(!rows.length)throw fail('Pengaduan tidak ditemukan.',404);
@@ -310,7 +336,7 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
   // ---------- Dashboard summary ----------
   app.get('/api/admin/summary',auth,async(req,res)=>{
     const count=async(sql,args=[])=>Number((await query(sql,args))[0].total);
-    const [byStatus,unread,tourism,projects,aid,gallery,latestComplaints,media]=await Promise.all([
+    const [byStatus,unread,tourism,projects,aid,gallery,latestComplaints,media,byCategory,feedback]=await Promise.all([
       query('SELECT status,COUNT(*) AS total FROM complaints GROUP BY status'),
       count("SELECT COUNT(*) AS total FROM chat_messages m JOIN chat_conversations c ON c.id=m.conversation_id WHERE m.sender='citizen' AND m.created_at>c.admin_read_at"),
       count('SELECT COUNT(*) AS total FROM tourism_places WHERE is_active=1'),
@@ -318,9 +344,11 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
       count("SELECT COUNT(*) AS total FROM aid_programs WHERE is_published=1 AND status<>'Selesai'"),
       count("SELECT COUNT(*) AS total FROM records WHERE kind='gallery' AND status='published'"),
       query('SELECT id,ticket_no,name,category,title,status,created_at FROM complaints ORDER BY ticket_no DESC LIMIT 5'),
-      count('SELECT COALESCE(SUM(LENGTH(content)),0) AS total FROM media')
+      count('SELECT COALESCE(SUM(LENGTH(content)),0) AS total FROM media'),
+      query('SELECT category,COUNT(*) AS total FROM complaints GROUP BY category ORDER BY COUNT(*) DESC'),
+      query('SELECT COUNT(*) AS total,COALESCE(AVG(feedback_rating),0) AS average FROM complaints WHERE feedback_rating>0')
     ]);
     const complaints=Object.fromEntries(statusCodes.map(s=>[s,Number(byStatus.find(r=>r.status===s)?.total||0)]));
-    res.json({complaints,unread,tourism,projects,aid,gallery,latestComplaints:latestComplaints.map(complaintRow),storage:{usedMB:Math.round(media/1048576*10)/10,limitMB:Number(process.env.MEDIA_LIMIT_MB||300)}});
+    res.json({complaints,unread,tourism,projects,aid,gallery,latestComplaints:latestComplaints.map(complaintRow),byCategory:byCategory.map(r=>({category:r.category,total:Number(r.total)})),feedback:{total:Number(feedback[0].total),average:Math.round(Number(feedback[0].average)*10)/10},storage:{usedMB:Math.round(media/1048576*10)/10,limitMB:Number(process.env.MEDIA_LIMIT_MB||300)}});
   });
 }

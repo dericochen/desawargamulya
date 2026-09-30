@@ -63,6 +63,39 @@ export function Weather({lat,lng,timeZone,place='',title='Cuaca desa'}){
   </aside>;
 }
 
+// "Kondisi Pesisir Hari Ini": wave height (Open-Meteo Marine) and wind for small fishing boats, with quick reports.
+// Wave classes follow BMKG's categories; 1.25 m waves or 15-knot (~28 km/h) wind are risky for small boats.
+const waveClass=h=>h<0.5?'Tenang':h<1.25?'Rendah':h<2.5?'Sedang':h<4?'Tinggi':'Sangat tinggi';
+const compass=d=>['utara','timur laut','timur','tenggara','selatan','barat daya','barat','barat laut'][Math.round(((d%360)+360)%360/45)%8];
+export function CoastalCard({site:s}){
+  const [state,setState]=useState({status:'loading'});
+  const lat=s.villageLat+0.03,lng=s.villageLng; // a point just offshore of the village coast
+  useEffect(()=>{
+    const key='mm_coast_'+lat.toFixed(3)+','+lng.toFixed(3);
+    try{const c=JSON.parse(sessionStorage.getItem(key)||'null');if(c&&Date.now()-c.at<30*60000)return setState({status:'ready',...c.data});}catch{}
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9000),tz=encodeURIComponent(s.timezone);
+    Promise.all([
+      fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,wave_period&daily=wave_height_max&timezone=${tz}&forecast_days=3`,{signal:ctrl.signal}).then(r=>r.ok?r.json():Promise.reject()),
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.villageLat}&longitude=${s.villageLng}&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m&daily=wind_speed_10m_max&timezone=${tz}&forecast_days=3`,{signal:ctrl.signal}).then(r=>r.ok?r.json():Promise.reject())
+    ]).then(([sea,air])=>{if(!sea.current||!air.current)throw new Error();const data={sea,air};try{sessionStorage.setItem(key,JSON.stringify({at:Date.now(),data}));}catch{}setState({status:'ready',...data});})
+      .catch(()=>setState({status:'error'})).finally(()=>clearTimeout(timer));
+    return()=>{ctrl.abort();clearTimeout(timer);};
+  },[lat,lng,s.timezone]);
+  const report=[['Lapor banjir / rob','Banjir / Rob'],['Lapor sampah pantai','Sampah Pantai']];
+  const actions=<div className="coast-actions">{report.map(([l,c])=><Link key={c} className="button secondary" href={'/pengaduan?buat=1&kategori='+encodeURIComponent(c)}>{l}</Link>)}<button className="button secondary coast-emergency" onClick={openEmergency}><PhoneCall/>Nomor darurat</button><a className="button secondary" href="https://maritim.bmkg.go.id/" target="_blank" rel="noreferrer">Peringatan resmi BMKG Maritim</a></div>;
+  let body;
+  if(state.status==='loading')body=<><div className="skeleton weather-skeleton"/><p className="small muted">Memuat kondisi laut…</p></>;
+  else if(state.status==='error')body=<p className="weather-error">Data kondisi laut sementara tidak tersedia. Periksa informasi resmi BMKG Maritim sebelum melaut.</p>;
+  else{
+    const {sea,air}=state,wave=sea.current.wave_height,wind=air.current.wind_speed_10m,gust=air.current.wind_gusts_10m;
+    const risky=wave>=1.25||wind>=28||gust>=40;
+    body=<><div className={'coast-status '+(risky?'warn':'ok')} role="status"><strong>{risky?'Waspada untuk perahu nelayan kecil':'Kondisi laut relatif tenang'}</strong><span>{risky?'Gelombang atau angin cukup kuat. Pertimbangkan menunda melaut dan pantau peringatan BMKG.':'Tetap pantau perubahan cuaca dan peringatan resmi BMKG.'}</span></div>
+      <dl className="coast-facts"><div><dt>Gelombang</dt><dd>{String(wave.toFixed(1)).replace('.',',')} m <small>{waveClass(wave)}</small></dd></div><div><dt>Angin</dt><dd>{Math.round(wind)} km/jam <small>dari {compass(air.current.wind_direction_10m)}</small></dd></div><div><dt>Hembusan</dt><dd>{Math.round(gust)} km/jam</dd></div></dl>
+      <ul className="weather-days coast-days">{sea.daily.time.slice(0,3).map((d,i)=><li key={d}><span>{['Hari ini','Besok','Lusa'][i]}</span><span>Gelombang maks. {String(sea.daily.wave_height_max[i].toFixed(1)).replace('.',',')} m</span><span>Angin maks. {Math.round(air.daily.wind_speed_10m_max[i])} km/jam</span></li>)}</ul></>;
+  }
+  return <section className="container section section-tight" aria-labelledby="coast-title"><div className="coast-card"><div className="coast-head"><div><span className="eyebrow">PESISIR {s.name.toUpperCase()}</span><h2 id="coast-title">Kondisi pesisir hari ini</h2></div></div>{body}{actions}
+    <p className="small muted">Perkiraan model Open-Meteo (CC BY 4.0), bukan peringatan resmi. Untuk keselamatan pelayaran selalu gunakan informasi BMKG.</p></div></section>;
+}
 export function GalleryCarousel({items}){
   const track=useRef(),[paused,setPaused]=useState(false),[index,setIndex]=useState(-1);
   const scroll=dir=>{const t=track.current;if(!t)return;const atEnd=t.scrollLeft+t.clientWidth>=t.scrollWidth-4;t.scrollBy({left:dir>0&&atEnd?-t.scrollWidth:dir*t.clientWidth*.9,behavior:'smooth'});};
