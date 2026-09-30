@@ -54,6 +54,31 @@ export function MultiImageField({label='Foto',values,onChange,max=3,help,require
     <small>{help||'JPG, PNG, atau WebP. Foto pertama menjadi sampul dan semua foto dapat digeser di halaman pengunjung.'} {list.length}/{max} foto.</small><Notice error>{err}</Notice>
   </div>;
 }
+// Scroll-reveal animation: fades/raises content as it enters the viewport. Skipped for reduced-motion users;
+// without JS or IntersectionObserver nothing is hidden. New nodes (tabs, filters) are picked up by a MutationObserver.
+const revealSelector='.section-heading,.product-card,.tourism-card,.project-card,.article-card,.aid-card,.data-section,.data-summary>div,.chart-grid>.panel,.quick-access>*,.gallery-grid>button,.agenda-card,.faq-item,.service-actions>button,.contact-list>div,.contact-map,.weather-card,.stats-grid>div,.location-list li,.news-feature,.event-row,.profile-brief,.home-contact>*,.registration-option,.map-filters,.track-panel,.complaint-form,.still-help';
+export function useReveal(){useEffect(()=>{
+  if(typeof IntersectionObserver==='undefined'||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  document.documentElement.classList.add('motion');
+  const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}},{rootMargin:'0px 0px -6% 0px',threshold:.06});
+  const scan=root=>{if(!root?.querySelectorAll)return;const list=[...(root.matches?.(revealSelector)?[root]:[]),...root.querySelectorAll(revealSelector)];for(const el of list){if(el.dataset.reveal||el.closest('dialog,.admin-shell,.leaflet-container'))continue;el.dataset.reveal='1';const i=[...el.parentElement.children].indexOf(el);el.style.setProperty('--reveal-delay',Math.min(Math.max(i,0),5)*70+'ms');el.classList.add('reveal');io.observe(el);}};
+  scan(document.body);
+  const mo=new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)scan(n);});
+  mo.observe(document.getElementById('root'),{childList:true,subtree:true});
+  return()=>{io.disconnect();mo.disconnect();};
+},[]);}
+// Counts up to a number (Indonesian formatting such as 2.846) once it becomes visible; other values render as-is.
+export function CountUp({value}){
+  const raw=String(value??''),m=raw.match(/^\d{1,3}(?:\.\d{3})*$|^\d+$/),target=m?Number(raw.replace(/\./g,'')):null;
+  const ref=useRef(),[shown,setShown]=useState(target===null?raw:raw);
+  useEffect(()=>{
+    if(target===null||typeof IntersectionObserver==='undefined'||matchMedia('(prefers-reduced-motion: reduce)').matches){setShown(raw);return;}
+    setShown('0');let frame;const io=new IntersectionObserver(([e])=>{if(!e.isIntersecting)return;io.disconnect();const start=performance.now(),dur=1200;
+      const tick=t=>{const p=Math.min(1,(t-start)/dur),v=Math.round(target*(1-Math.pow(1-p,3)));setShown(new Intl.NumberFormat('id-ID').format(v));if(p<1)frame=requestAnimationFrame(tick);};frame=requestAnimationFrame(tick);},{threshold:.4});
+    io.observe(ref.current);return()=>{io.disconnect();cancelAnimationFrame(frame);};
+  },[raw]);
+  return <span ref={ref} className="count-up" aria-label={raw}><span aria-hidden="true">{shown}</span></span>;
+}
 // Village logo from the CMS; falls back to the monogram.
 export function BrandMark({site}){return site?.logo?<img className="brand-logo" src={site.logo} alt={'Logo '+(site.identity||'desa')} width="48" height="48"/>:<span className="brand-mark" aria-hidden="true">M<span>m</span></span>;}
 export function PageIntro({eyebrow,title,children,action}){return <div className="page-intro"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{children&&<p>{children}</p>}</div>{action}</div>;}

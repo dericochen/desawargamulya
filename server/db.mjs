@@ -76,11 +76,13 @@ async function migratePortal(){
 }
 // Brings an existing site record up to date with new menu keys/pages and fills placeholders with verified location data.
 function upgradeSite(site){
-  let changed=false;
+  let changed=false;const revision=site.designRevision||1;
   if(!site.heroSlides&&site.heroImage){site.heroSlides=[{image:site.heroImage,caption:site.heroCaption||''}];if(site.heroImage==='/images/pesisir-tangerang.jpg')site.heroSlides.push(structuredClone(siteSeed.heroSlides[1]));changed=true;}
   // Any new top-level setting (e.g. dataSections, homepage texts) is filled from the seed; existing admin values are never overwritten.
   for(const [k,v] of Object.entries(siteSeed))if(site[k]===undefined){site[k]=structuredClone(v);changed=true;}
   for(const k of ['nav','labels','pages'])for(const [key,value] of Object.entries(siteSeed[k]))if(!(key in site[k])){site[k][key]=structuredClone(value);changed=true;}
+  // Design revision 2: the village requested a plain background with Banten cultural ornaments.
+  if(revision<2){if(!site.backgroundStyle||site.backgroundStyle==='gelombang')site.backgroundStyle='budaya';site.designRevision=2;changed=true;}
   // Replace untouched demo defaults that no longer fit a coastal village.
   if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;site.heroSlides=structuredClone(siteSeed.heroSlides);changed=true;}
   if(JSON.stringify(site.occupations)==='[{"label":"Pertanian","value":40},{"label":"Wiraswasta","value":27},{"label":"Karyawan","value":21},{"label":"Lainnya","value":12}]'){site.occupations=structuredClone(siteSeed.occupations);changed=true;}

@@ -137,7 +137,7 @@ app.put('/api/admin/site',auth,async(req,res)=>{
     d.homeSections=req.body.homeSections.filter(s=>known.includes(s?.key)&&!seen.has(s.key)&&seen.add(s.key)).map(s=>({key:s.key,visible:s.visible!==false}));
     for(const key of known)if(!seen.has(key))d.homeSections.push({key,visible:false});
   }
-  if('backgroundStyle' in req.body){if(!['gelombang','anyaman','polos'].includes(req.body.backgroundStyle))throw fail('Motif latar tidak dikenal.');d.backgroundStyle=req.body.backgroundStyle;}
+  if('backgroundStyle' in req.body){if(!['budaya','gelombang','anyaman','polos'].includes(req.body.backgroundStyle))throw fail('Motif latar tidak dikenal.');d.backgroundStyle=req.body.backgroundStyle;}
   d.demo=req.body.demo!==false;
   for(const [k,min,max] of [['villageLat',-90,90],['villageLng',-180,180],['officeLat',-90,90],['officeLng',-180,180]])if(k in req.body){const n=Number(req.body[k]);if(req.body[k]===''||!Number.isFinite(n)||n<min||n>max)throw fail('Koordinat peta tidak valid.');d[k]=n;}
   for(const k of ['nav','labels'])if(req.body[k])for(const key of Object.keys(d[k]))d[k][key]=clean(req.body[k][key]||d[k][key],100);

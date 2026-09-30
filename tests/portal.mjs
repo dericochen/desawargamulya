@@ -102,7 +102,7 @@ export async function checkPortal(t,request){
     const site=(await request('/content')).data.site;
     assert.deepEqual([...new Set(site.dataSections.map(s=>s.code))],['A','B','C','E','F','G','H','I','J','K','L','M']);
     assert.equal(/agama|pemeluk/i.test(JSON.stringify(site.dataSections)),false,'no SARA-related data');
-    assert.equal(site.homeProfileTitle,'Desa pesisir di utara Mauk');assert.equal(site.heroImage,'/images/pesisir-tangerang.jpg');
+    assert.equal(site.homeProfileTitle,'Desa pesisir di utara Mauk');assert.equal(site.backgroundStyle,'budaya');assert.equal(site.heroImage,'/images/pesisir-tangerang.jpg');
     const bad=structuredClone(site.dataSections);bad.find(s=>s.chart==='bar').rows[0].value='banyak';
     assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{dataSections:bad}})).status,400);
     assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{dataSections:[{code:'x',title:'Luar',chart:'table',link:'https://evil.example',rows:[]}]}})).status,400);
