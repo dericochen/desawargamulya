@@ -59,7 +59,7 @@ export default function VillageMap({points,center,zoom=14,focusId,label='Peta in
     const group=layer.current;if(!group)return;group.clearLayers();markers.current.clear();
     for(const p of points){
       if(!Number.isFinite(p.lat)||!Number.isFinite(p.lng))continue;
-      const marker=L.marker([p.lat,p.lng],{icon:icon(p.category),title:p.name+' — '+(categoryInfo[p.category]||categoryInfo.lainnya).label,alt:p.name,keyboard:true,riseOnHover:true}).bindPopup(()=>popupContent(p),{maxWidth:260,minWidth:200});
+      const marker=L.marker([p.lat,p.lng],{icon:icon(p.category),title:p.name+' — '+(categoryInfo[p.category]||categoryInfo.lainnya).label,alt:p.name,keyboard:true,riseOnHover:true}).bindPopup(()=>popupContent(p),{maxWidth:260,minWidth:200,autoPanPadding:[56,56]});
       marker.addTo(group);markers.current.set(p.id,marker);
     }
   },[points]);

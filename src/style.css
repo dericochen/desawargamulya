@@ -195,3 +195,5 @@
 .header-search{background:#fff;color:var(--green)}
 
 .leaflet-container a.leaflet-popup-close-button{width:36px;height:36px;font-size:22px;line-height:34px;display:grid;place-items:center;top:2px;right:2px}.leaflet-bar a{width:40px!important;height:40px!important;line-height:40px!important}
+
+.status{color:#525d4d}
