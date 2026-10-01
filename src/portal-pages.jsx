@@ -4,6 +4,8 @@ import {MapPin,Navigation,Phone,Clock,Ticket,ListChecks,Images,Search,Map as Map
 import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs,Slides,PhotoCount,imagesOf,DataBadge} from './lib.jsx';
 import {mapFilters,facilityCategories} from '../server/portal-schema.mjs';
 
+import TourismDirectory,{DirectoryIntro} from './tourism-directory.jsx';
+
 const categoryLabel=Object.fromEntries(facilityCategories.map(([k,l,e])=>[k,e+' '+l]));
 // Keeps a detail dialog in sync with ?lihat= so detail views can be shared and the back button closes them.
 function useDetail(items,key='id'){
@@ -46,10 +48,14 @@ function TourismDetail({place:t,onClose}){
 }
 export function Tourism({data}){
   const list=data.portal.tourism,[selected,select]=useDetail(list,'slug');
+  const tab=['penginapan','pemandu'].includes(param('tab'))?param('tab'):'destinasi';
+  const stays=data.portal.stays||[],guides=data.portal.guides||[];
   return <><PageIntro {...data.site.pages.wisata}>{data.site.pages.wisata.intro}</PageIntro>
-    <h2 className="sr-only">Daftar destinasi wisata</h2>{list.length?<div className="tourism-grid">{list.map(t=><TourismCard key={t.id} place={t} onDetail={select}/>)}</div>:<Empty title="Belum ada destinasi" text="Destinasi wisata akan tampil setelah ditambahkan pengelola."/>}
-    <div className="subtle-note"><ShieldCheck size={18}/><p>Harga tiket, jam buka, dan fasilitas hanya ditampilkan jika sudah dikonfirmasi. Foto yang belum tersedia sengaja tidak diganti gambar buatan.</p></div>
-    {selected&&<TourismDetail place={selected} onClose={()=>select(null)}/>}</>;
+    {tab==='destinasi'&&<DirectoryIntro site={data.site} stays={stays} guides={guides}/>}
+    <HubTabs label="Bagian wisata" active={tab} tabs={[['destinasi','Destinasi'],['penginapan','Penginapan warga'],['pemandu','Pemandu lokal']]}/>
+    <div id="hub-panel" role="tabpanel" aria-labelledby={'hub-tab-'+tab}>
+    {tab==='destinasi'?<><h2 className="sr-only">Daftar destinasi wisata</h2>{list.length?<div className="tourism-grid">{list.map(t=><TourismCard key={t.id} place={t} onDetail={select}/>)}</div>:<Empty title="Belum ada destinasi wisata"/>}<div className="info-note"><ShieldCheck size={18}/><p>Harga tiket, jam buka, dan fasilitas hanya ditampilkan jika sudah dikonfirmasi. Foto yang belum tersedia sengaja tidak diganti gambar buatan.</p></div>{selected&&<TourismDetail place={selected} onClose={()=>select(null)}/>}</>:<TourismDirectory key={tab} kind={tab==='penginapan'?'stay':'guide'} items={tab==='penginapan'?stays:guides} site={data.site}/>}
+    </div></>;
 }
 
 export function MapPage({data}){
@@ -61,7 +67,7 @@ export function MapPage({data}){
   return <><PageIntro {...s.pages['peta-desa']}>{s.pages['peta-desa'].intro}</PageIntro>
     <div className="map-filters" role="group" aria-label="Filter kategori lokasi">{mapFilters.map(([k,label,cats])=>{const n=k==='semua'?all.length:all.filter(p=>cats.includes(p.category)).length;return <button key={k} aria-pressed={filter===k} className={filter===k?'active':''} onClick={()=>{setFilter(k);setFocus('');}}>{label}<span>{n}</span></button>;})}</div>
     <MapView points={points} center={[s.villageLat,s.villageLng]} zoom={14} focusId={focus} className="map-large" label={'Peta interaktif '+s.identity}/>
-    <p className="small muted map-hint">Klik peta terlebih dahulu untuk memperbesar dengan roda tetikus. Di ponsel, gunakan dua jari. Peta: Google Maps.</p>
+    <p className="small muted map-hint">Gunakan tombol + / − untuk memperbesar. Pilih kategori atau lokasi di bawah untuk menemukan titik yang dibutuhkan.</p>
     <section className="location-list" aria-labelledby="daftar-lokasi"><h2 id="daftar-lokasi">Daftar lokasi ({points.length})</h2>
       {points.length?<ul>{points.map(p=><li key={p.id}><div><span className="map-list-category">{categoryLabel[p.category]||p.category}</span> <DataBadge status={p.status}/><strong>{p.name}</strong><p>{p.address}</p></div><div className="location-actions"><button className="button secondary" onClick={()=>{setFocus('');setTimeout(()=>setFocus(p.id));window.scrollTo({top:document.querySelector('.map-large')?.getBoundingClientRect().top+window.scrollY-90,behavior:'smooth'});}}>Tampilkan di peta</button><a className="button secondary" href={directionsUrl(p.lat,p.lng)} target="_blank" rel="noreferrer"><Navigation/>Petunjuk Arah</a></div></li>)}</ul>:<Empty title="Tidak ada lokasi pada kategori ini"/>}
     </section></>;
@@ -149,6 +155,8 @@ export function SearchDialog({data}){
     ['Berita & pengumuman',Newspaper,data.articles.filter(a=>has(a.title,a.excerpt,a.body,a.category)).map(a=>({id:a.id,title:a.title,text:a.category+' · '+dateLabel(a.date),href:'/informasi?baca='+a.id}))],
     ['Agenda kegiatan',CalendarDays,data.events.filter(e=>has(e.title,e.description,e.location,e.category)).map(e=>({id:e.id,title:e.title,text:dateLabel(e.date)+' · '+e.location,href:'/informasi?tab=agenda&lihat='+e.id}))],
     ['Wisata',MapPin,p.tourism.filter(t=>has(t.name,t.description,t.address,t.category)).map(t=>({id:t.id,title:t.name,text:t.address,href:'/wisata?lihat='+t.slug}))],
+    ['Penginapan warga',Building2,(p.stays||[]).filter(t=>has(t.name,t.area,t.description,t.amenities)).map(t=>({id:t.id,title:t.name,text:t.area,href:'/wisata?tab=penginapan&lihat='+t.slug}))],
+    ['Pemandu lokal',MapPin,(p.guides||[]).filter(t=>has(t.name,t.area,t.specialties,t.languages)).map(t=>({id:t.id,title:t.name,text:t.area,href:'/wisata?tab=pemandu&lihat='+t.slug}))],
     ['Pembangunan',HardHat,p.projects.filter(x=>has(x.title,x.description,x.location,x.area_name)).map(x=>({id:x.id,title:x.title,text:x.status+' · '+x.year,href:'/transparansi?tab=pembangunan&lihat='+x.id}))],
     ['Bantuan desa',HeartHandshake,p.aid.filter(x=>has(x.name,x.description)).map(x=>({id:x.id,title:x.name,text:x.status+' · '+x.year,href:'/transparansi?tab=bantuan&lihat='+x.id}))],
     ['Pertanyaan umum (FAQ)',CircleHelp,p.faqs.filter(f=>has(f.question,f.answer)).map(f=>({id:f.id,title:f.question,text:f.answer.slice(0,120)+(f.answer.length>120?'…':''),href:'/pengaduan?faq='+f.id}))],

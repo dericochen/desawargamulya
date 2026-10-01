@@ -1,15 +1,15 @@
 // Portal Digital Desa — table definitions shared by the migration, server-side validation,
 // the generic admin CRUD API and the admin forms. Pure module: safe to import from the browser.
-export const SCHEMA_VERSION='portal-v3';
+export const SCHEMA_VERSION='portal-v5-tourism-submissions';
 
 export const facilityCategories=[
-  ['wisata','Wisata','🏖'],['kesehatan','Kesehatan','🏥'],['apotek','Apotek','💊'],['polisi','Polisi','🚓'],
+  ['wisata','Wisata','🏖'],['penginapan','Penginapan warga','🏡'],['pemandu','Titik temu pemandu','🧭'],['kesehatan','Kesehatan','🏥'],['apotek','Apotek','💊'],['polisi','Polisi','🚓'],
   ['pemadam','Pemadam kebakaran','🚒'],['sekolah','Sekolah','🏫'],['olahraga','Lapangan & olahraga','⚽'],['taman','Taman, danau & ruang terbuka','🌳'],
   ['pemerintahan','Pemerintahan','🏛'],['atm','ATM','🏧'],['spbu','SPBU','⛽'],['lainnya','Fasilitas lainnya','🛒']
 ];
 // Filter groups shown above the map; each group lists the categories it contains.
 export const mapFilters=[
-  ['semua','Semua',[]],['wisata','Wisata',['wisata']],['kesehatan','Kesehatan',['kesehatan','apotek']],
+  ['semua','Semua',[]],['wisata','Wisata',['wisata']],['penginapan','Penginapan',['penginapan']],['pemandu','Pemandu',['pemandu']],['kesehatan','Kesehatan',['kesehatan','apotek']],
   ['pendidikan','Pendidikan',['sekolah']],['pemerintahan','Pemerintahan',['pemerintahan']],
   ['keamanan','Keamanan',['polisi','pemadam']],['olahraga','Olahraga & taman',['olahraga','taman']],['atm','ATM',['atm']],['lainnya','Lainnya',['spbu','lainnya']]
 ];
@@ -38,7 +38,63 @@ const phone=(label='Nomor telepon',o={})=>({type:'phone',label,...o});
 const date=(label,o={})=>({type:'date',label,...o});
 const rtPattern={pattern:/^\d{1,3}$/,patternMessage:'RT/RW berupa angka 1–3 digit, misalnya 003.'};
 
+const directoryFields=()=>({
+  name:text('Nama layanan / usaha',150,{required:true,min:3}),
+  slug:{type:'slug',from:'name',label:'Slug'},
+  short_description:text('Ringkasan',300,{required:true}),
+  description:long('Deskripsi lengkap',6000),
+  area:text('Wilayah layanan / lokasi umum',200,{required:true,help:'Cukup dusun atau kawasan; alamat rumah lengkap dapat diberikan saat konfirmasi.'}),
+  owner_name:text('Nama pemilik / pemandu',120,{help:'Tampil di halaman detail.'}),
+  address:text('Alamat lengkap (khusus pengelola, tidak tampil di website)',300),
+  submission_status:choice('Status pengajuan',[['admin','Dibuat pengelola'],['pending','Pengajuan baru — perlu diperiksa'],['approved','Pengajuan disetujui'],['rejected','Pengajuan ditolak']]),
+  cover_image:image('Foto layanan'),
+  image_credit:text('Sumber foto / izin pemilik',300),
+  phone:phone('WhatsApp penyedia'),
+  contact_consent:bool('Penyedia mengizinkan publikasi layanan dan kontak',false),
+  latitude:num('Latitude titik yang disetujui',-90,90,{step:'any'}),
+  longitude:num('Longitude titik yang disetujui',-180,180,{step:'any'}),
+  location_consent:bool('Penyedia mengizinkan titik ini ditampilkan di peta',false,{help:'Untuk pemandu, gunakan titik temu umum. Tanpa izin, koordinat tidak dikirim ke pengunjung.'}),
+  price:num('Tarif mulai (Rp)',0,100000000,{help:'Kosongkan jika harus ditanyakan. Angka 0 berarti gratis.'}),
+  availability:choice('Status layanan',[['inquiry','Konfirmasi ketersediaan'],['paused','Sementara tidak menerima tamu']]),
+  terms:long('Ketentuan & cara konfirmasi',2000),
+  data_status:dataStatus(),
+  verified_on:date('Tanggal pemeriksaan oleh desa'),
+  is_active:bool('Terbitkan layanan',false),
+  sort_order:int('Urutan tampil',0,9999,{def:100})
+});
+function checkDirectory(r){
+  if((r.latitude===null)!==(r.longitude===null))return 'Isi latitude dan longitude berpasangan, atau kosongkan keduanya.';
+  if(r.location_consent&&r.latitude===null)return 'Isi titik peta sebelum memberikan izin lokasi.';
+  if(r.phone){const n=r.phone.replace(/[\s().-]/g,'');if(!/^(?:\+62|62|0)8\d{7,11}$/.test(n))return 'Isi nomor WhatsApp Indonesia yang valid.';r.phone=n.replace(/^\+/,'').replace(/^0/,'62');}
+  if(r.cover_image&&!r.image_credit)return 'Isi sumber foto atau keterangan izin pemilik.';
+  if(r.data_status==='terverifikasi'&&!r.verified_on)return 'Isi tanggal pemeriksaan sebelum memberi status Terverifikasi desa.';
+  if(r.verified_on&&r.verified_on>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(new Date()))return 'Tanggal pemeriksaan tidak boleh di masa depan.';
+  if(r.is_active&&r.data_status!=='demo'&&(!r.owner_name||!r.address))return 'Sebelum terbit, isi nama pemilik dan alamat lengkap.';
+  if(r.is_active&&r.submission_status==='rejected')return 'Pengajuan yang ditolak tidak dapat diterbitkan.';
+  if(r.is_active&&r.submission_status==='pending')r.submission_status='approved';
+  if(r.is_active&&r.data_status!=='demo'&&(!r.contact_consent||!r.phone))return 'Sebelum terbit, minta izin penyedia dan isi nomor WhatsApp. Untuk demonstrasi, pilih Data contoh.';
+}
+
 export const tables={
+  tourism_stays:{title:'Penginapan warga',item:'penginapan',publicFlag:'is_active',order:'sort_order, name',fields:{
+    ...directoryFields(),
+    stay_type:choice('Jenis penginapan',['Rumah sewa','Homestay','Kamar tamu','Villa']),
+    capacity:int('Kapasitas tamu',1,100,{def:2}),
+    bedrooms:int('Kamar tidur',0,50,{def:1}),
+    amenities:long('Fasilitas — satu per baris',2000),
+    check_in:text('Jam masuk',80),check_out:text('Jam keluar',80),
+    accessibility:long('Akses & kebutuhan khusus',1000,{help:'Jelaskan kondisi nyata, misalnya akses tangga atau toilet. Hindari klaim yang belum diperiksa.'})
+  },check:checkDirectory},
+  tourism_guides:{title:'Pemandu lokal',item:'pemandu',publicFlag:'is_active',order:'sort_order, name',fields:{
+    ...directoryFields(),
+    languages:text('Bahasa layanan (pisahkan koma)',200,{def:'Bahasa Indonesia'}),
+    specialties:long('Kegiatan / keahlian — satu per baris',2000),
+    capacity:int('Maksimal peserta per kelompok',1,100,{def:6}),
+    duration_hours:num('Durasi layanan (jam)',0.5,72,{step:0.5}),
+    rate_unit:choice('Satuan tarif',['per kelompok','per orang']),
+    inclusions:long('Termasuk dalam tarif — satu per baris',2000),
+    exclusions:long('Belum termasuk — satu per baris',2000)
+  },check:checkDirectory},
   tourism_places:{title:'Wisata',item:'destinasi wisata',publicFlag:'is_active',order:'sort_order, name',
     fields:{
       name:text('Nama wisata',150,{required:true,min:3}),
@@ -65,7 +121,7 @@ export const tables={
   public_facilities:{title:'Fasilitas umum',item:'fasilitas',publicFlag:'is_active',order:'category, name',
     fields:{
       name:text('Nama fasilitas',150,{required:true,min:3}),
-      category:choice('Kategori',facilityCategories.filter(c=>c[0]!=='wisata').map(([v,l,e])=>[v,e+' '+l])),
+      category:choice('Kategori',facilityCategories.filter(c=>!['wisata','penginapan','pemandu'].includes(c[0])).map(([v,l,e])=>[v,e+' '+l])),
       description:long('Keterangan',2000),
       address:text('Alamat',300,{required:true}),
       latitude:num('Latitude',-90,90,{required:true,step:'any'}),
@@ -209,6 +265,7 @@ export const homeSectionLabels={quick:'Akses cepat layanan',news:'Pengumuman & a
 export const extraImageColumns=()=>[
   ...Object.entries(tables).flatMap(([table,def])=>Object.entries(def.fields).filter(([,f])=>f.type==='image').map(([k])=>[table,k+'_more',"TEXT NOT NULL DEFAULT '[]'"])),
   ['complaints','image_more',"TEXT NOT NULL DEFAULT '[]'"],
+  ...['tourism_stays','tourism_guides'].flatMap(t=>[[t,'owner_name',"TEXT NOT NULL DEFAULT ''"],[t,'address',"TEXT NOT NULL DEFAULT ''"],[t,'submission_status',"TEXT NOT NULL DEFAULT 'admin'"]]),
   ...Object.entries(tables).flatMap(([table,def])=>def.fields.data_status?[[table,'data_status',columnSql('data_status',def.fields.data_status).replace(/^data_status /,'')]]:[]),
   ['complaints','pin_hash',"TEXT NOT NULL DEFAULT ''"],
   ['complaints','feedback_rating','INTEGER NOT NULL DEFAULT 0'],

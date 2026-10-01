@@ -45,6 +45,7 @@ export function RowForm({table,row,parent,onSaved,onCancel}){
 
 function rowSummary(table,r,refs={}){
   switch(table){
+    case 'tourism_stays':case 'tourism_guides':return [r.name,(r.submission_status==='pending'?'Pengajuan baru · ':'')+r.area+' · '+(r.price===null?'Tanyakan tarif':money(r.price))+' · '+(r.data_status==='demo'?'Data contoh':r.availability==='paused'?'Layanan dijeda':'Konfirmasi ketersediaan'),r.cover_image,r.is_active];
     case 'tourism_places':return [r.name,r.address,r.cover_image,r.is_active];
     case 'public_facilities':return [r.name,categoryLabel[r.category]+' · '+r.address,r.image_url,r.is_active];
     case 'faqs':return [r.question,r.category,null,r.is_active];

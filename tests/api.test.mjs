@@ -5,6 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes} from 'node:crypto';
 import {checkRegistrations} from './registrations.mjs';
+import {checkDirectory} from './directory.mjs';
 import {checkPortal} from './portal.mjs';
 
 const testRoot=fileURLToPath(new URL('../.test-data/',import.meta.url));
@@ -86,6 +87,7 @@ test('Public content, moderation, image privacy and CMS persistence',async t=>{
   });
   await checkRegistrations(t,request);
   await checkPortal(t,request);
+  await checkDirectory(t,request);
   await t.test('Delete removes media; logout revokes access',async()=>{
    assert.equal((await request('/admin/records/'+record.id,{method:'DELETE',admin:true})).status,200);assert.equal((await request(record.image.slice(4),{admin:true})).status,404);
    assert.equal((await request('/logout',{method:'POST',admin:true})).status,200);assert.equal((await request('/admin/content',{admin:true})).status,401);

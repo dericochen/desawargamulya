@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState,useId} from 'react';
 import {X,ImageOff,LoaderCircle,ChevronLeft,ChevronRight,ImagePlus,Trash2,Images} from 'lucide-react';
+import {validCoordinates,serviceHref} from './tourism-utils.js';
 export async function api(path,options={}){
   const response=await fetch('/api'+path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...options,body:options.body?JSON.stringify(options.body):undefined});
   const value=await response.json();if(!response.ok)throw new Error(value.error||'Permintaan gagal.');return value;
@@ -10,7 +11,7 @@ export const statusLabel={published:'Terbit',pending:'Menunggu peninjauan',draft
 export const today=(timeZone='Asia/Jakarta')=>new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 export function Picture({src,alt='',className='',...props}){const[failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[src]);return src&&!failed?<img src={src} alt={alt} className={className} onError={()=>setFailed(true)} loading={className==='hero-photo'?'eager':'lazy'} fetchpriority={className==='hero-photo'?'high':undefined} decoding="async" {...props}/>:<div className={'image-missing '+className}><ImageOff/><span>Foto belum tersedia</span></div>;}
 export function Modal({title,children,onClose,wide=false,className=''}){
-  const ref=useRef();useEffect(()=>{const el=ref.current;el.showModal();document.body.classList.add('modal-open');return()=>document.body.classList.remove('modal-open');},[]);
+  const ref=useRef();useEffect(()=>{const el=ref.current,opener=document.activeElement;el.showModal();document.body.classList.add('modal-open');return()=>{document.body.classList.remove('modal-open');if(opener?.isConnected)opener.focus();};},[]);
   return <dialog ref={ref} className={'dialog '+(wide?'wide ':'')+className} onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)onClose();}}}><div className="dialog-head"><h2>{title}</h2><button className="icon-button" onClick={onClose} aria-label="Tutup"><X/></button></div><div className="dialog-body">{children}</div></dialog>;
 }
 export function Field({label,help,children,...props}){return <label className="field"><span>{label}</span>{children||<input {...props}/>} {help&&<small>{help}</small>}</label>;}
@@ -90,7 +91,10 @@ export const openEmergency=()=>window.dispatchEvent(new Event('mm:emergency'));
 export const openAssistant=(detail={})=>window.dispatchEvent(new CustomEvent('mm:assistant',{detail}));
 export const openSearch=(q='')=>window.dispatchEvent(new CustomEvent('mm:search',{detail:{q}}));
 // Tabs that live inside one public page (keeps the site within the 10-page limit). State is kept in ?tab=.
-export function HubTabs({tabs,active,label}){return <div className="tabs hub-tabs" role="tablist" aria-label={label}>{tabs.map(([k,l])=><button key={k} role="tab" id={'hub-tab-'+k} aria-selected={active===k} aria-controls="hub-panel" onClick={()=>{if(active!==k)navigate(location.pathname+'?tab='+k);}}>{l}</button>)}</div>;}
+export function HubTabs({tabs,active,label}){
+ const refs=useRef([]);const select=k=>{if(active!==k)navigate(location.pathname+'?tab='+k);};
+ return <div className="tabs hub-tabs" role="tablist" aria-label={label}>{tabs.map(([k,l],i)=><button ref={el=>refs.current[i]=el} key={k} role="tab" id={'hub-tab-'+k} tabIndex={active===k?0:-1} aria-selected={active===k} aria-controls="hub-panel" onClick={()=>select(k)} onKeyDown={e=>{const n=e.key==='ArrowRight'?(i+1)%tabs.length:e.key==='ArrowLeft'?(i+tabs.length-1)%tabs.length:e.key==='Home'?0:e.key==='End'?tabs.length-1:-1;if(n<0)return;e.preventDefault();refs.current[n]?.focus();select(tabs[n][0]);}}>{l}</button>)}</div>;
+}
 export const isActiveHref=(href,path)=>{const [p,q]=href.split('?');if(p!==path)return false;if(!q)return !new URLSearchParams(location.search).get('tab');const want=new URLSearchParams(q),have=new URLSearchParams(location.search);return [...want].every(([k,v])=>have.get(k)===v);};
 export const telHref=phone=>'tel:'+String(phone).replace(/[^\d+]/g,'');
 export const directionsUrl=(lat,lng)=>`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
@@ -104,6 +108,8 @@ export function WhenVisible({children,minHeight=300}){const ref=useRef(),[shown,
 export function mapPoints(portal){
   return [
     ...portal.tourism.map(t=>({id:t.id,name:t.name,category:'wisata',address:t.address,lat:t.latitude,lng:t.longitude,image:t.cover_image,href:'/wisata?lihat='+t.slug,status:t.data_status})),
+    ...(portal.stays||[]).filter(t=>validCoordinates(t.latitude,t.longitude)).map(t=>({id:t.id,name:t.name,category:'penginapan',address:t.area,lat:t.latitude,lng:t.longitude,image:t.cover_image,href:serviceHref('stay',t),status:t.data_status})),
+    ...(portal.guides||[]).filter(t=>validCoordinates(t.latitude,t.longitude)).map(t=>({id:t.id,name:t.name,category:'pemandu',address:t.area,lat:t.latitude,lng:t.longitude,image:t.cover_image,href:serviceHref('guide',t),status:t.data_status})),
     ...portal.facilities.map(f=>({id:f.id,name:f.name,category:f.category,address:f.address,lat:f.latitude,lng:f.longitude,image:f.image_url,status:f.data_status}))
   ];
 }

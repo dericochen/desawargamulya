@@ -88,6 +88,7 @@ export async function portalMediaVisible(recordId){
   const [,table,id]=recordId.split(':');if(!tables[table])return false;
   const d=tables[table],row=await byId(table,id);
   if(!row||d.privateRows||(d.publicFlag&&!row[d.publicFlag]))return false;
+  if(['tourism_stays','tourism_guides'].includes(table)&&row.data_status!=='demo'&&!row.contact_consent)return false;
   return d.parent?portalMediaVisible(owner(d.parent.table,row[d.parent.key])):true;
 }
 
@@ -100,7 +101,15 @@ export async function publicPortal(){
     query("SELECT program_id,status,COUNT(*) AS total FROM aid_recipients WHERE is_active=1 GROUP BY program_id,status")
   ]);
   const areaName=id=>areas.find(a=>a.id===id)?.name||'',nodeIds=new Set(nodes.map(n=>n.id));
+  const directory=rows=>rows.filter(r=>r.data_status==='demo'||r.contact_consent).map(r=>{
+    const {contact_consent,location_consent,address,submission_status,...item}=r;
+    if(!contact_consent||r.data_status==='demo')item.phone='';
+    if(!location_consent||r.data_status==='demo'){item.latitude=null;item.longitude=null;}
+    return item;
+  });
+  const [stays,guides]=await Promise.all([active('tourism_stays'),active('tourism_guides')]);
   return {
+    stays:directory(stays),guides:directory(guides),
     tourism:places.map(p=>({...p,gallery:gallery.filter(g=>g.tourism_id===p.id)})),
     facilities,faqs,emergency,
     chatbot:{nodes,options:options.filter(o=>nodeIds.has(o.node_id))},
@@ -181,6 +190,52 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
     res.json({ok:true});
   });
 
+  // ---------- Public tourism submissions (penginapan / pemandu dari warga) ----------
+  // Residents submit a villa/house or a guide service. Rows arrive hidden (is_active 0, submission_status 'pending')
+  // and must be reviewed and published by an admin; the full address is kept out of the public payload.
+  app.post('/api/tourism/submissions',async(req,res)=>{
+    const b=req.body||{};if(b.website)throw fail('Pengajuan tidak dapat diproses.');
+    const kind=b.kind;if(kind!=='stay'&&kind!=='guide')throw fail('Jenis pengajuan tidak dikenal.');
+    const table=kind==='stay'?'tourism_stays':'tourism_guides',fields=tables[table].fields;
+    const name=required(b.name,'Nama layanan',3,150),owner_name=required(b.owner_name,'Nama pemilik / pemandu',3,120);
+    const address=required(b.address,'Alamat lengkap',10,300),area=required(b.area,'Wilayah yang ditampilkan',3,200);
+    const short_description=required(b.short_description,'Ringkasan',10,300),phone=normalizePhone(b.phone);
+    const photos=Array.isArray(b.images)?b.images:[];
+    if(photos.length<1||photos.length>MAX_IMAGES)throw fail(`Unggah 1–${MAX_IMAGES} foto layanan.`);
+    if(photos.some(p=>typeof p!=='string'||!p.startsWith('data:image/')))throw fail('Unggah foto dari perangkat Anda (JPG, PNG, atau WebP), bukan tautan.');
+    const capacityRaw=Number(b.capacity);
+    if(!Number.isInteger(capacityRaw)||capacityRaw<1||capacityRaw>100)throw fail('Kapasitas harus berupa angka bulat 1–100.');
+    if(b.consent!==true)throw fail('Centang pernyataan persetujuan sebelum mengirim.');
+    const description=str(b.description,6000);if(description.length>6000)throw fail('Deskripsi lengkap maksimal 6.000 karakter.');
+    let price=null;
+    if(b.price!==''&&b.price!=null){const n=Number(b.price);if(!Number.isInteger(n)||n<0||n>100000000)throw fail('Tarif harus berupa angka bulat 0–100.000.000.');price=n;}
+    const input={name,owner_name,address,area,short_description,description,phone,capacity:capacityRaw,price,
+      is_active:false,data_status:'perlu_verifikasi',submission_status:'pending',contact_consent:true,location_consent:false,
+      latitude:null,longitude:null,availability:'inquiry',verified_on:'',sort_order:100,
+      image_credit:'Foto dari pemilik, dikirim melalui formulir pengajuan website.',cover_image:photos[0]||'',cover_image_more:photos.slice(1)};
+    if(kind==='stay'){
+      const stayTypes=optionValues(fields.stay_type);const stay_type=str(b.stay_type,80);
+      if(!stayTypes.includes(stay_type))throw fail('Pilih jenis penginapan.');
+      const bedrooms=Number(b.bedrooms);if(!Number.isInteger(bedrooms)||bedrooms<1||bedrooms>50)throw fail('Kamar tidur harus berupa angka bulat 1–50.');
+      const amenities=str(b.amenities,2000);if(amenities.length>2000)throw fail('Fasilitas maksimal 2.000 karakter.');
+      const check_in=str(b.check_in,80),check_out=str(b.check_out,80);
+      if(check_in.length>80||check_out.length>80)throw fail('Jam masuk / keluar maksimal 80 karakter.');
+      Object.assign(input,{stay_type,bedrooms,amenities,check_in,check_out});
+    }else{
+      const languages=required(b.languages,'Bahasa layanan',3,200),specialties=required(b.specialties,'Kegiatan / keahlian',3,2000);
+      const rateUnits=optionValues(fields.rate_unit),rate_unit=b.rate_unit==null||b.rate_unit===''?'per kelompok':str(b.rate_unit,40);
+      if(!rateUnits.includes(rate_unit))throw fail('Pilih satuan tarif.');
+      let duration_hours=null;
+      if(b.duration_hours!==''&&b.duration_hours!=null){const n=Number(b.duration_hours);if(!Number.isFinite(n)||n<0.5||n>72)throw fail('Durasi layanan harus 0,5–72 jam.');duration_hours=n;}
+      Object.assign(input,{languages,specialties,duration_hours,rate_unit});
+    }
+    await rate(req,'tourism-submit',5,60);
+    const id=randomUUID(),stamp=now();
+    const row=await validateRow(table,input,null,id,{imageSafe,persistImage});
+    const cols=['id',...Object.keys(row),'created_at','updated_at'];
+    await query(`INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(()=>'?').join(',')})`,[id,...Object.values(row),stamp,stamp]);
+    res.status(201).json({ok:true,message:'Pengajuan diterima. Pengelola desa akan memeriksa data dan menghubungi Anda melalui WhatsApp sebelum layanan ditampilkan.'});
+  });
   // ---------- Complaints (pengaduan) ----------
   // Ticket code = sequential number + 3 random characters, e.g. TIK-004-K7Q. One string to copy and paste;
   // the random part (stored only as a hash) stops people from guessing other residents' tickets.
@@ -341,7 +396,7 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
   // ---------- Dashboard summary ----------
   app.get('/api/admin/summary',auth,async(req,res)=>{
     const count=async(sql,args=[])=>Number((await query(sql,args))[0].total);
-    const [byStatus,unread,tourism,projects,aid,gallery,latestComplaints,media,byCategory,feedback]=await Promise.all([
+    const [byStatus,unread,tourism,projects,aid,gallery,latestComplaints,media,byCategory,feedback,submitStays,submitGuides]=await Promise.all([
       query('SELECT status,COUNT(*) AS total FROM complaints GROUP BY status'),
       count("SELECT COUNT(*) AS total FROM chat_messages m JOIN chat_conversations c ON c.id=m.conversation_id WHERE m.sender='citizen' AND m.created_at>c.admin_read_at"),
       count('SELECT COUNT(*) AS total FROM tourism_places WHERE is_active=1'),
@@ -351,9 +406,11 @@ export function mountPortal(app,{auth,rate,imageSafe,persistImage}){
       query('SELECT id,ticket_no,name,category,title,status,created_at FROM complaints ORDER BY ticket_no DESC LIMIT 5'),
       count('SELECT COALESCE(SUM(LENGTH(content)),0) AS total FROM media'),
       query('SELECT category,COUNT(*) AS total FROM complaints GROUP BY category ORDER BY COUNT(*) DESC'),
-      query('SELECT COUNT(*) AS total,COALESCE(AVG(feedback_rating),0) AS average FROM complaints WHERE feedback_rating>0')
+      query('SELECT COUNT(*) AS total,COALESCE(AVG(feedback_rating),0) AS average FROM complaints WHERE feedback_rating>0'),
+      count("SELECT COUNT(*) AS total FROM tourism_stays WHERE submission_status='pending'"),
+      count("SELECT COUNT(*) AS total FROM tourism_guides WHERE submission_status='pending'")
     ]);
     const complaints=Object.fromEntries(statusCodes.map(s=>[s,Number(byStatus.find(r=>r.status===s)?.total||0)]));
-    res.json({complaints,unread,tourism,projects,aid,gallery,latestComplaints:latestComplaints.map(complaintRow),byCategory:byCategory.map(r=>({category:r.category,total:Number(r.total)})),feedback:{total:Number(feedback[0].total),average:Math.round(Number(feedback[0].average)*10)/10},storage:{usedMB:Math.round(media/1048576*10)/10,limitMB:Number(process.env.MEDIA_LIMIT_MB||300)}});
+    res.json({complaints,unread,tourism,projects,aid,gallery,latestComplaints:latestComplaints.map(complaintRow),byCategory:byCategory.map(r=>({category:r.category,total:Number(r.total)})),feedback:{total:Number(feedback[0].total),average:Math.round(Number(feedback[0].average)*10)/10},storage:{usedMB:Math.round(media/1048576*10)/10,limitMB:Number(process.env.MEDIA_LIMIT_MB||300)},tourismSubmissions:{stays:submitStays,guides:submitGuides}});
   });
 }

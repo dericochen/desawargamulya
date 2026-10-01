@@ -184,7 +184,7 @@ export async function checkPortal(t,request){
     const s=(await request('/content')).data.site;
     assert.equal(s.heroSlides.length,2);assert.match(s.heroSlides[1].image,/^\/api\/media\//);assert.equal((await request(s.heroSlides[1].image.slice(4))).status,200);
     assert.match(s.logo,/^\/api\/media\//);assert.equal(s.heroButtons[0].href,'/peta-desa');assert.equal(s.backgroundStyle,'anyaman');
-    assert.equal(s.homeSections[0].key,'map');assert.equal(s.homeSections.find(x=>x.key==='news').visible,false);assert.equal(s.homeSections.length,13);assert.ok(!s.homeSections.some(x=>x.key==='bogus'));
+    assert.equal(s.homeSections[0].key,'map');assert.equal(s.homeSections.find(x=>x.key==='news').visible,false);assert.deepEqual([...s.homeSections.map(x=>x.key)].sort(),['quick','news','market','profile','weather','tourism','projects','stats','gallery','latest','map','contact'].sort());assert.ok(!s.homeSections.some(x=>x.key==='bogus'));
     const old=s.heroSlides[1].image;
     assert.equal((await request('/admin/site',{method:'PUT',admin:true,body:{heroSlides:[{image:'/images/pesisir-tangerang.jpg',caption:'Satu'}],logo:''}})).status,200);
     assert.equal((await request(old.slice(4),{admin:true})).status,404,'removed hero slide photo is deleted');

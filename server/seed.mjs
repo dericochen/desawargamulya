@@ -24,6 +24,11 @@ function dataSections(){return [
 import {homeSectionKeys} from './portal-schema.mjs';
 export {homeSectionKeys};
 export const siteSeed = {
+  tourismServiceTitle:'Singgah lebih lama, kenal warga lebih dekat.',
+  tourismServiceIntro:'Temukan penginapan warga dan pendamping perjalanan lokal. Setiap kunjungan membuka kesempatan bagi usaha desa.',
+  tourismServiceNotice:'Tarif bersifat indikatif. Tanyakan ketersediaan, harga akhir, fasilitas, dan ketentuan langsung kepada penyedia sebelum menyepakati perjalanan.',
+  tourismStayIntro:'Pilihan tempat singgah dari warga. Pilih kapasitas dan fasilitas yang sesuai kebutuhan perjalananmu.',
+  tourismGuideIntro:'Kenali desa bersama pemandu lokal. Temukan kegiatan, bahasa layanan, dan ukuran kelompok yang sesuai.',
   name:'Marga Mulya', identity:'Desa Marga Mulya', area:'Portal informasi & kegiatan masyarakat',
   heroTitle:'Kenali desanya.\nTemukan ceritanya.',
   heroText:'Kabar masyarakat, agenda bersama, dan hasil usaha warga Desa Marga Mulya dalam satu tempat.',
@@ -53,7 +58,7 @@ export const siteSeed = {
     lapak:{eyebrow:'Usaha & produk warga',title:'Lapak desa',intro:'Temukan hasil kebun, pangan, dan kerajinan dari usaha warga.'},
     galeri:{eyebrow:'Dokumentasi & potensi',title:'Cerita dalam gambar',intro:'Lingkungan, keterampilan, dan kehidupan masyarakat dalam dokumentasi.'},
     kontak:{eyebrow:'Hubungi pengelola',title:'Kontak desa',intro:'Temukan alamat dan saluran komunikasi yang dikelola pemerintah desa.'},
-    wisata:{eyebrow:'Pesisir Tanjung Kait',title:'Wisata desa',intro:'Pantai dan tempat menarik di Desa Marga Mulya. Informasi tiket dan jam buka ditampilkan jika sudah dikonfirmasi pengelola.'},
+    wisata:{eyebrow:'Pesisir Tanjung Kait',title:'Wisata desa',intro:'Jelajahi destinasi pesisir, temukan penginapan warga, dan kenali desa bersama pemandu lokal.'},
     "peta-desa":{eyebrow:'Wisata & fasilitas umum',title:'Peta desa',intro:'Geser dan perbesar peta, pilih kategori, lalu ketuk penanda untuk melihat alamat dan petunjuk arah.'},
     pembangunan:{eyebrow:'Transparansi desa',title:'Pembangunan desa',intro:'Kegiatan pembangunan, anggaran, sumber dana, dan progres pelaksanaannya.'},
     bantuan:{eyebrow:'Transparansi desa',title:'Bantuan desa',intro:'Program bantuan sosial, status penyaluran, dan dokumentasinya. Data pribadi penerima tidak ditampilkan.'},

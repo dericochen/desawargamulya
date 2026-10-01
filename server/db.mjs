@@ -5,6 +5,7 @@ import {randomBytes,scryptSync,timingSafeEqual,createHash} from 'node:crypto';
 import {seedRecords,siteSeed} from './seed.mjs';
 import {portalDDL,SCHEMA_VERSION,extraImageColumns,homeSectionKeys,legacyHomeOrder} from './portal-schema.mjs';
 import {portalSeed,approxNote,officialSchools,emergency112} from './portal-seed.mjs';
+import {directorySeed} from './directory-seed.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 let queryFn; let transactionFn; let ready; let closeFn=()=>{};
 // Releases the local SQLite file handle (used by tests so the temp folder can be deleted on Windows).
@@ -40,6 +41,7 @@ export async function init(){
     const existing=await queryFn("SELECT id FROM records WHERE id='__seeded'");
     if(!existing.length){for(const r of seedRecords())await queryFn('INSERT INTO records (id,kind,status,data,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING',[r.id,r.kind,r.status,JSON.stringify(r.data),new Date().toISOString()]);await queryFn('INSERT INTO records (id,kind,status,data,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING',['__seeded','system','private','{}',new Date().toISOString()]);}
     await migratePortal();
+    await seedDirectory();
     await cleanupPortalContent();
     await addOfficialSchools();
     await labelDataSources();
@@ -56,6 +58,18 @@ export async function init(){
     }
   })().catch(e=>{ready=null;throw e;});
   return ready;
+}
+async function seedDirectory(){
+  if((await queryFn("SELECT id FROM records WHERE id='__directory_seeded'")).length)return;
+  const rows=await queryFn("SELECT data FROM records WHERE id='site'");
+  const demo=rows.length&&JSON.parse(rows[0].data).demo;
+  const stamp=new Date().toISOString();
+  const statements=demo?directorySeed().map(({table,row})=>{
+    const cols=[...Object.keys(row),'created_at','updated_at'];
+    return {sql:`INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(()=>'?').join(',')}) ON CONFLICT(id) DO NOTHING`,args:[...Object.values(row),stamp,stamp]};
+  }):[];
+  statements.push({sql:"INSERT INTO records (id,kind,status,data,updated_at) VALUES ('__directory_seeded','system','private','{}',?) ON CONFLICT(id) DO NOTHING",args:[stamp]});
+  await transactionFn(statements);
 }
 // Adds the portal tables once per schema version (never drops or rewrites existing data) and seeds verified starter data once.
 async function migratePortal(){
@@ -125,6 +139,7 @@ function upgradeSite(site){
   // Any new top-level setting (e.g. dataSections, homepage texts) is filled from the seed; existing admin values are never overwritten.
   for(const [k,v] of Object.entries(siteSeed))if(site[k]===undefined){site[k]=structuredClone(v);changed=true;}
   for(const k of ['nav','labels','pages'])for(const [key,value] of Object.entries(siteSeed[k]))if(!(key in site[k])){site[k][key]=structuredClone(value);changed=true;}
+  if(site.pages?.wisata?.intro==="Pantai dan tempat menarik di Desa Marga Mulya. Informasi tiket dan jam buka ditampilkan jika sudah dikonfirmasi pengelola."){site.pages.wisata.intro=siteSeed.pages.wisata.intro;changed=true;}
   // Design revision 2: the village requested a plain background with Banten cultural ornaments.
   if(revision<2){if(!site.backgroundStyle||site.backgroundStyle==='gelombang')site.backgroundStyle='budaya';site.designRevision=Math.max(site.designRevision||0,2);changed=true;}
   // Revision 4: complete groups B, C and E of the EcoQuest data structure. A group is replaced only while it

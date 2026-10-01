@@ -122,7 +122,7 @@ app.post('/api/logout',async(req,res)=>{await query('DELETE FROM sessions WHERE 
 app.get('/api/admin/content',auth,async(req,res)=>res.json((await query("SELECT * FROM records WHERE kind IN ('site','article','event','product','gallery') ORDER BY updated_at DESC")).map(parseRow)));
 app.put('/api/admin/site',auth,async(req,res)=>{
   const current=await getRecord('site');const d={...current};delete d.id;delete d.kind;delete d.status;delete d.updatedAt;
-  const strings=['name','identity','area','heroTitle','heroText','heroCaption','about','history','vision','missions','geography','address','phone','email','mapUrl','hours','timezone','footer','demoNote','dataPeriod','dataSource','sourceUrl','homeProfileTitle','regionLines','weatherPlace','tourismIntro','marketIntro','mapIntro','projectsIntro'];
+  const strings=['tourismServiceTitle','tourismServiceIntro','tourismServiceNotice','tourismStayIntro','tourismGuideIntro','name','identity','area','heroTitle','heroText','heroCaption','about','history','vision','missions','geography','address','phone','email','mapUrl','hours','timezone','footer','demoNote','dataPeriod','dataSource','sourceUrl','homeProfileTitle','regionLines','weatherPlace','tourismIntro','marketIntro','mapIntro','projectsIntro'];
   for(const k of strings)if(k in req.body)d[k]=clean(req.body[k],12000);
   if(!d.name||!d.heroTitle||!d.about)throw fail('Nama desa, judul utama, dan profil wajib diisi.');
   try{new Intl.DateTimeFormat('id-ID',{timeZone:d.timezone});}catch{throw fail('Zona waktu tidak valid.');}
