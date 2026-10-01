@@ -1,12 +1,27 @@
-// Interactive Leaflet + OpenStreetMap map. Loaded lazily so pages without a map stay light.
+// Interactive Google Maps map. Loaded lazily so pages without a map stay light.
 import React,{useEffect,useRef} from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import {facilityCategories} from '../server/portal-schema.mjs';
 import {directionsUrl,dataStatusInfo} from './lib.jsx';
 
 const categoryInfo=Object.fromEntries(facilityCategories.map(([key,label,emoji])=>[key,{label,emoji}]));
 const el=(tag,props={},children=[])=>{const n=document.createElement(tag);Object.assign(n,props);for(const c of [].concat(children))if(c)n.append(c);return n;};
+const apiKey=import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+// Load the Google Maps JS API exactly once, even when several maps mount on one page.
+let mapsPromise=null;
+function loadGoogleMaps(){
+  if(typeof window!=='undefined'&&window.google?.maps)return Promise.resolve(window.google.maps);
+  if(mapsPromise)return mapsPromise;
+  mapsPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=marker&v=weekly`;
+    script.async=true;script.defer=true;
+    script.addEventListener('load',()=>window.google?.maps?resolve(window.google.maps):reject(new Error('Google Maps gagal dimuat.')));
+    script.addEventListener('error',()=>{mapsPromise=null;reject(new Error('Google Maps gagal dimuat.'));});
+    document.head.appendChild(script);
+  });
+  return mapsPromise;
+}
 
 // Popup DOM is built with textContent (never innerHTML) so admin-entered text cannot inject markup.
 function popupContent(p){
@@ -22,64 +37,67 @@ function popupContent(p){
     el('div',{className:'map-popup-actions'},links)
   ]);
 }
-const icon=category=>{const info=categoryInfo[category]||categoryInfo.lainnya;return L.divIcon({className:'map-marker',html:`<span class="map-pin pin-${category in categoryInfo?category:'lainnya'}" aria-hidden="true"><span>${info.emoji}</span></span>`,iconSize:[38,38],iconAnchor:[19,36],popupAnchor:[0,-32]});};
 
-const FullscreenControl=L.Control.extend({
-  options:{position:'topright'},
-  onAdd(map){
-    const button=L.DomUtil.create('button','map-fullscreen');button.type='button';button.textContent='⛶';
-    const sync=()=>{const on=map.getContainer().closest('.map-shell').classList.contains('expanded');button.title=button.ariaLabel=on?'Keluar dari layar penuh':'Tampilkan peta layar penuh';};
-    L.DomEvent.disableClickPropagation(button);
-    L.DomEvent.on(button,'click',async()=>{
-      const shell=map.getContainer().closest('.map-shell');
-      if(document.fullscreenElement)await document.exitFullscreen();
-      else if(shell.classList.contains('expanded'))shell.classList.remove('expanded');
-      else if(shell.requestFullscreen)await shell.requestFullscreen().catch(()=>shell.classList.add('expanded'));
-      else shell.classList.add('expanded');
-      sync();setTimeout(()=>map.invalidateSize(),200);
-    });
-    document.addEventListener('fullscreenchange',()=>{sync();setTimeout(()=>map.invalidateSize(),200);});
-    sync();return button;
-  }
-});
+// Emoji pin that mirrors the previous marker markup, so the existing CSS keeps styling it.
+function pinElement(category){
+  const info=categoryInfo[category]||categoryInfo.lainnya;
+  const key=category in categoryInfo?category:'lainnya';
+  return el('span',{className:'map-marker'},[el('span',{className:'map-pin pin-'+key},[el('span',{textContent:info.emoji})])]);
+}
 
-const TouchLockControl=L.Control.extend({
-  options:{position:'bottomleft'},
-  onAdd(map){
-    const button=L.DomUtil.create('button','map-touch-lock');button.type='button';
-    const sync=()=>{const on=map.dragging.enabled();button.textContent=on?'🔒 Kunci peta':'✋ Ketuk untuk menggeser peta';button.setAttribute('aria-pressed',String(on));map.getContainer().classList.toggle('map-locked',!on);};
-    map.dragging.disable();
-    L.DomEvent.disableClickPropagation(button);
-    L.DomEvent.on(button,'click',()=>{map.dragging.enabled()?map.dragging.disable():map.dragging.enable();sync();});
-    sync();return button;
-  }
-});
 export default function VillageMap({points,center,zoom=14,focusId,label='Peta interaktif desa',className=''}){
-  const node=useRef(),map=useRef(),layer=useRef(),markers=useRef(new Map());
+  const node=useRef(),map=useRef(),info=useRef(),markers=useRef(new Map());
   useEffect(()=>{
-    const m=L.map(node.current,{center,zoom,scrollWheelZoom:false,tap:true,zoomControl:false});
-    L.control.zoom({zoomInTitle:'Perbesar peta',zoomOutTitle:'Perkecil peta'}).addTo(m);
-    m.on('popupopen',e=>{const b=e.popup.getElement()?.querySelector('.leaflet-popup-close-button');if(b){b.setAttribute('aria-label','Tutup keterangan lokasi');b.title='Tutup';}});
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>'}).addTo(m);
-    new FullscreenControl().addTo(m);
-    // Touch screens: one-finger swipes scroll the page until the visitor unlocks the map (pinch-zoom always works).
-    if(matchMedia('(pointer: coarse)').matches)new TouchLockControl().addTo(m);
-    // Wheel zoom only after the user clicks the map, so scrolling the page is not hijacked.
-    m.on('click',()=>m.scrollWheelZoom.enable());m.on('mouseout',()=>m.scrollWheelZoom.disable());
-    layer.current=L.layerGroup().addTo(m);map.current=m;
-    return()=>{m.remove();map.current=null;};
+    if(!apiKey)return;
+    let cancelled=false;const listeners=[];
+    loadGoogleMaps().then(maps=>{
+      if(cancelled||!node.current)return;
+      const m=new maps.Map(node.current,{center:{lat:center[0],lng:center[1]},zoom,disableDefaultUI:false,zoomControl:true,mapTypeControl:false,streetViewControl:false,fullscreenControl:false,gestureHandling:'cooperative'});
+      map.current=m;info.current=new maps.InfoWindow({maxWidth:260});
+
+      // Custom fullscreen toggle: mirrors the old behaviour (requestFullscreen with an `expanded` fallback).
+      const button=el('button',{type:'button',className:'map-fullscreen',textContent:'⛶'});
+      const sync=()=>{const on=node.current?.closest('.map-shell')?.classList.contains('expanded')||!!document.fullscreenElement;button.title=button.ariaLabel=on?'Keluar dari layar penuh':'Tampilkan peta layar penuh';};
+      button.addEventListener('click',async()=>{
+        const shell=node.current?.closest('.map-shell');if(!shell)return;
+        if(document.fullscreenElement)await document.exitFullscreen();
+        else if(shell.classList.contains('expanded'))shell.classList.remove('expanded');
+        else if(shell.requestFullscreen)await shell.requestFullscreen().catch(()=>shell.classList.add('expanded'));
+        else shell.classList.add('expanded');
+        sync();setTimeout(()=>maps.event.trigger(m,'resize'),200);
+      });
+      const onFs=()=>{sync();setTimeout(()=>maps.event.trigger(m,'resize'),200);};
+      document.addEventListener('fullscreenchange',onFs);listeners.push(['fullscreenchange',onFs]);
+      sync();
+      m.controls[maps.ControlPosition.TOP_RIGHT].push(button);
+
+      drawMarkers(maps);
+      focusMarker();
+    }).catch(()=>{});
+    return()=>{cancelled=true;for(const [ev,fn] of listeners)document.removeEventListener(ev,fn);if(map.current)google.maps?.event?.clearInstanceListeners?.(map.current);markers.current.clear();map.current=null;info.current=null;};
   },[]);
-  useEffect(()=>{
-    const group=layer.current;if(!group)return;group.clearLayers();markers.current.clear();
+
+  function drawMarkers(maps){
+    const m=map.current;if(!m)return;
+    for(const marker of markers.current.values())marker.map=null;
+    markers.current.clear();
     for(const p of points){
       if(!Number.isFinite(p.lat)||!Number.isFinite(p.lng))continue;
-      const marker=L.marker([p.lat,p.lng],{icon:icon(p.category),title:p.name+' — '+(categoryInfo[p.category]||categoryInfo.lainnya).label,alt:p.name,keyboard:true,riseOnHover:true}).bindPopup(()=>popupContent(p),{maxWidth:260,minWidth:200,autoPanPadding:[56,56]});
-      marker.addTo(group);markers.current.set(p.id,marker);
+      // AdvancedMarkerElement renders arbitrary DOM (the emoji pin) without needing a map style/mapId
+      // when a content element is supplied, so it is the least fragile way to keep the old look.
+      const marker=new maps.marker.AdvancedMarkerElement({map:m,position:{lat:p.lat,lng:p.lng},content:pinElement(p.category),title:p.name+' — '+(categoryInfo[p.category]||categoryInfo.lainnya).label});
+      marker.addListener('click',()=>{info.current.setContent(popupContent(p));info.current.open({map:m,anchor:marker});});
+      markers.current.set(p.id,marker);
     }
-  },[points]);
-  useEffect(()=>{
-    const marker=focusId&&markers.current.get(focusId);
-    if(marker&&map.current){map.current.setView(marker.getLatLng(),16);marker.openPopup();}
-  },[focusId,points]);
+  }
+  function focusMarker(){
+    const m=map.current,marker=focusId&&markers.current.get(focusId);
+    if(m&&marker){const pos=marker.position;m.setCenter(pos);m.setZoom(16);info.current.setContent(popupContent(points.find(p=>p.id===focusId)));info.current.open({map:m,anchor:marker});}
+  }
+
+  useEffect(()=>{if(window.google?.maps&&map.current)drawMarkers(window.google.maps);},[points]);
+  useEffect(()=>{if(window.google?.maps&&map.current)focusMarker();},[focusId,points]);
+
+  if(!apiKey)return <div className={'map-shell '+className}><div className="map-fallback"><p>Peta tidak tersedia: kunci Google Maps belum dikonfigurasi.</p></div></div>;
   return <div className={'map-shell '+className}><div ref={node} className="village-map" role="region" aria-label={label}/></div>;
 }

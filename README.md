@@ -28,7 +28,7 @@ Buka http://localhost:4173 untuk pengunjung dan http://localhost:4173/admin untu
 | Informasi (`/informasi`) | Tab Berita & pengumuman dan tab Agenda (kalender, pendaftaran peserta/lapak bazar) |
 | Galeri (`/galeri`) · Lapak desa (`/lapak`) | Galeri lengkap per kategori; katalog produk warga dengan moderasi |
 | Wisata (`/wisata`) | Kartu destinasi, detail (foto, alamat, jam, tiket, fasilitas, galeri, peta, kontak, petunjuk arah) |
-| Peta Desa (`/peta-desa`) | Peta Leaflet + OpenStreetMap: geser, zoom, layar penuh, filter kategori, popup + petunjuk arah, daftar lokasi |
+| Peta Desa (`/peta-desa`) | Peta Google Maps: geser, zoom, layar penuh, filter kategori, popup + petunjuk arah, daftar lokasi |
 | Transparansi (`/transparansi`) | Tab Pembangunan (progres, anggaran, dokumentasi sebelum/proses/selesai, timeline) dan tab Bantuan (program, dokumentasi, penerima tersamar) |
 | Layanan warga (`/pengaduan`) | FAQ dahulu, lalu pengaduan bertiket TIK-001, tab cek tiket, Asisten Desa, chat admin |
 | Kontak | Alamat, jam, telepon, email, peta interaktif kantor desa, tombol "Buka di Google Maps" |
@@ -43,7 +43,7 @@ Tombol **Darurat** (header, akses cepat, footer) membuka lembar nomor 112/110/11
 - **Pengaduan.** Nomor tiket `TIK-001`, `TIK-002`, … berasal dari penghitung database (tidak dipakai ulang). Halaman cek tiket hanya menampilkan kategori, dusun, status dan catatan petugas; nama, nomor, isi dan foto hanya untuk admin. Admin mengubah status BARU → DIVERIFIKASI → DIPROSES → SELESAI/DITOLAK beserta catatan.
 - **Asisten Desa.** Bot menu angka (bukan AI) yang dibaca dari tabel `chatbot_nodes`/`chatbot_options`. Pilihan dapat membuka menu lain, formulir pengaduan berkategori, cek tiket, FAQ, halaman website, nomor darurat, atau menghubungkan ke admin.
 - **Pesan Warga.** Warga yang dihubungkan ke admin mendapat kode rahasia di perangkatnya; admin membalas di inbox (status belum dibaca, selesai/buka kembali, kategori). Pembaruan memakai polling ringan tiap 5–6 detik karena stack ini tidak memiliki layanan realtime; tidak ada teknologi baru yang ditambahkan.
-- **Peta dan cuaca.** Leaflet + OpenStreetMap dimuat terpisah hanya saat peta dibuka. Cuaca dari Open-Meteo (tanpa API key) berdasarkan koordinat desa, maksimal 3 hari, dengan pesan cadangan bila gagal.
+- **Peta dan cuaca.** Google Maps dimuat terpisah hanya saat peta dibuka. Cuaca dari Open-Meteo (tanpa API key) berdasarkan koordinat desa, maksimal 3 hari, dengan pesan cadangan bila gagal.
 - **Foto ganda & slide.** Setiap isian foto (berita, galeri, produk, pengajuan lapak, wisata, fasilitas, pembangunan, dokumentasi, bantuan, pengaduan) menerima hingga 3 foto; foto pertama menjadi sampul. Di halaman detail foto dapat digeser (swipe, tombol panah, titik, atau tombol panah keyboard); kartu menampilkan penanda jumlah foto. Kolom tambahan `<kolom>_more` ditambahkan dengan migrasi aditif (`ALTER TABLE ... ADD COLUMN`).
 - **Lapak Desa di Beranda.** Bagian Lapak Desa tampil tepat setelah pengumuman: hingga 6 produk terbit, filter kategori, tombol **Ajukan produk** (langsung membuka formulir di /lapak?ajukan=1) dan **Lihat semua produk**; di ponsel kartu produk dapat digeser.
 - **Tampilan Beranda (admin).** Logo desa, slide foto utama (maks. 5, berganti tiap 6 detik, bisa dijeda), dua tombol foto utama, bagian beranda yang tampil beserta urutannya, dan motif latar (gelombang pesisir, anyaman bambu, atau polos).
@@ -115,7 +115,7 @@ Foto bersumber dari Wikimedia Commons. Atribusi lengkap tersedia pada footer **S
 | basket.webp | [Abdulrohmatt — Woman weaving a bamboo basket](https://commons.wikimedia.org/wiki/File:Woman_weaving_a_bamboo_basket,_Tasikmalaya.jpg) | CC BY-SA 4.0 |
 | weave.webp | [Dinata Juan — Sidetapa anyam bambu](https://commons.wikimedia.org/wiki/File:20180707_Sidetapa_anyam_bambu.jpg) | CC BY-SA 4.0 |
 
-Foto utama beranda adalah perahu nelayan di Pantai Tanjung Pasir, Tangerang (Banacama, Wikimedia Commons, CC BY-SA 4.0) sebagai ilustrasi pesisir. Semua foto kecuali Kantor Desa Marga Mulya dan Kantor Kecamatan Mauk (foto asli oleh Enperfectify World, Wikimedia Commons, CC BY-SA 4.0, 28 Agustus 2024) merupakan ilustrasi, bukan dokumentasi desa. Wisata, pembangunan, dan bantuan sengaja memakai placeholder sampai admin mengunggah foto asli; tidak ada gambar buatan AI. Tipografi menggunakan DM Sans dan Lora dari Google Fonts, dengan fallback lokal. Ikon memakai Lucide. Peta memakai Leaflet 1.9.4 dan data © kontributor OpenStreetMap. Lisensi paket terdapat dalam distribusi dependensi masing-masing.
+Foto utama beranda adalah perahu nelayan di Pantai Tanjung Pasir, Tangerang (Banacama, Wikimedia Commons, CC BY-SA 4.0) sebagai ilustrasi pesisir. Semua foto kecuali Kantor Desa Marga Mulya dan Kantor Kecamatan Mauk (foto asli oleh Enperfectify World, Wikimedia Commons, CC BY-SA 4.0, 28 Agustus 2024) merupakan ilustrasi, bukan dokumentasi desa. Wisata, pembangunan, dan bantuan sengaja memakai placeholder sampai admin mengunggah foto asli; tidak ada gambar buatan AI. Tipografi menggunakan DM Sans dan Lora dari Google Fonts, dengan fallback lokal. Ikon memakai Lucide. Peta memakai Google Maps JavaScript API. Lisensi paket terdapat dalam distribusi dependensi masing-masing.
 
 ## Penerbitan ke Vercel
 

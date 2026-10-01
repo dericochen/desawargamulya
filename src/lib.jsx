@@ -61,7 +61,7 @@ export function useReveal(){useEffect(()=>{
   if(typeof IntersectionObserver==='undefined'||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   document.documentElement.classList.add('motion');
   const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}},{rootMargin:'0px 0px -6% 0px',threshold:.06});
-  const scan=root=>{if(!root?.querySelectorAll)return;const list=[...(root.matches?.(revealSelector)?[root]:[]),...root.querySelectorAll(revealSelector)];for(const el of list){if(el.dataset.reveal||el.closest('dialog,.admin-shell,.leaflet-container'))continue;el.dataset.reveal='1';const i=[...el.parentElement.children].indexOf(el);el.style.setProperty('--reveal-delay',Math.min(Math.max(i,0),5)*70+'ms');el.classList.add('reveal');io.observe(el);}};
+  const scan=root=>{if(!root?.querySelectorAll)return;const list=[...(root.matches?.(revealSelector)?[root]:[]),...root.querySelectorAll(revealSelector)];for(const el of list){if(el.dataset.reveal||el.closest('dialog,.admin-shell,.village-map'))continue;el.dataset.reveal='1';const i=[...el.parentElement.children].indexOf(el);el.style.setProperty('--reveal-delay',Math.min(Math.max(i,0),5)*70+'ms');el.classList.add('reveal');io.observe(el);}};
   scan(document.body);
   const mo=new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)scan(n);});
   mo.observe(document.getElementById('root'),{childList:true,subtree:true});
