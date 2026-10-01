@@ -142,8 +142,8 @@ function upgradeSite(site){
   }
   // Revision 3: Lapak Desa moves up on the homepage, but only when the admin never changed the section order.
   if(revision<3){if(JSON.stringify(site.homeSections)===JSON.stringify(legacyHomeOrder.map(key=>({key,visible:true}))))site.homeSections=homeSectionKeys.map(key=>({key,visible:true}));site.designRevision=Math.max(site.designRevision||0,3);changed=true;}
-  // Revision 5: new "Kondisi pesisir" homepage block, placed after the announcements.
-  if(revision<5){if(Array.isArray(site.homeSections)&&!site.homeSections.some(x=>x.key==='coastal')){const i=site.homeSections.findIndex(x=>x.key==='news');site.homeSections.splice(i<0?0:i+1,0,{key:'coastal',visible:true});}site.designRevision=Math.max(site.designRevision||0,5);changed=true;}
+  // Revision 5: the "Kondisi pesisir" homepage block was removed; drop any leftover entry.
+  if(revision<5){if(Array.isArray(site.homeSections)){const before=site.homeSections.length;site.homeSections=site.homeSections.filter(x=>x.key!=='coastal');if(site.homeSections.length!==before)changed=true;}site.designRevision=Math.max(site.designRevision||0,5);changed=true;}
   // Replace untouched demo defaults that no longer fit a coastal village.
   if(site.heroImage==='/images/hero.webp'&&site.heroCaption==='Lanskap perdesaan di Jawa · foto ilustrasi'){site.heroImage=siteSeed.heroImage;site.heroCaption=siteSeed.heroCaption;site.heroSlides=structuredClone(siteSeed.heroSlides);changed=true;}
   if(JSON.stringify(site.occupations)==='[{"label":"Pertanian","value":40},{"label":"Wiraswasta","value":27},{"label":"Karyawan","value":21},{"label":"Lainnya","value":12}]'){site.occupations=structuredClone(siteSeed.occupations);changed=true;}
