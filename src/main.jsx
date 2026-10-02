@@ -8,17 +8,17 @@ const Admin=React.lazy(()=>import('./admin.jsx'));
 import './style.css';
 
 // Menu structure; labels come from the CMS (site.nav) so admins can rename items.
-// Exactly 10 public pages: /, /profil, /informasi, /galeri, /lapak, /wisata, /peta-desa, /pengaduan, /transparansi, /kontak.
+// Exactly 9 public pages: /, /profil, /informasi, /galeri, /lapak, /wisata, /pengaduan, /transparansi, /kontak.
 const menuGroups=nav=>[
   {href:'/',label:nav.home},{href:'/profil',label:nav.profil},
   {label:nav.informasi||'Informasi',items:[['/informasi','Berita & pengumuman'],['/informasi?tab=agenda',nav.agenda],['/galeri',nav.galeri],['/lapak',nav.lapak]]},
   {label:nav.pengaduan||'Layanan warga',items:[['/pengaduan','Pengaduan & FAQ'],['/pengaduan?tab=cek','Cek pengaduan'],['tanya','Tanya Desa'],['darurat','Nomor darurat']]},
-  {href:'/wisata',label:nav.wisata},{href:'/peta-desa',label:nav['peta-desa']},
+  {href:'/wisata',label:nav.wisata},
   {label:nav.transparansi||'Transparansi',items:[['/transparansi?tab=pembangunan',nav.pembangunan],['/transparansi?tab=bantuan',nav.bantuan]]},
   {href:'/kontak',label:nav.kontak}
 ];
 // Older addresses (shared links, QR codes, chatbot options) keep working and land on the merged page.
-const legacy={'/agenda':'/informasi?tab=agenda','/pembangunan':'/transparansi?tab=pembangunan','/bantuan':'/transparansi?tab=bantuan','/pengaduan/cek':'/pengaduan?tab=cek','/tanya-desa':'/pengaduan?tanya=1','/cari':'/'};
+const legacy={'/agenda':'/informasi?tab=agenda','/pembangunan':'/transparansi?tab=pembangunan','/bantuan':'/transparansi?tab=bantuan','/pengaduan/cek':'/pengaduan?tab=cek','/tanya-desa':'/pengaduan?tanya=1','/peta-desa':'/wisata','/cari':'/'};
 function redirectLegacy(){
   const to=legacy[location.pathname.replace(/\/+$/,'')];if(!to)return false;
   const [p,q]=to.split('?'),params=new URLSearchParams(q||''),old=new URLSearchParams(location.search);

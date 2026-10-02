@@ -58,7 +58,7 @@ export const siteSeed = {
     lapak:{eyebrow:'Usaha & produk warga',title:'Lapak desa',intro:'Temukan hasil kebun, pangan, dan kerajinan dari usaha warga.'},
     galeri:{eyebrow:'Dokumentasi & potensi',title:'Cerita dalam gambar',intro:'Lingkungan, keterampilan, dan kehidupan masyarakat dalam dokumentasi.'},
     kontak:{eyebrow:'Hubungi pengelola',title:'Kontak desa',intro:'Temukan alamat dan saluran komunikasi yang dikelola pemerintah desa.'},
-    wisata:{eyebrow:'Pesisir Tanjung Kait',title:'Wisata desa',intro:'Jelajahi destinasi pesisir, temukan penginapan warga, dan kenali desa bersama pemandu lokal.'},
+    wisata:{eyebrow:'Pesisir Tanjung Kait',title:'Wisata desa',intro:'Lihat peta wisata dan fasilitas desa, jelajahi destinasi pesisir, temukan penginapan warga, dan kenali desa bersama pemandu lokal.'},
     "peta-desa":{eyebrow:'Wisata & fasilitas umum',title:'Peta desa',intro:'Geser dan perbesar peta, pilih kategori, lalu ketuk penanda untuk melihat alamat dan petunjuk arah.'},
     pembangunan:{eyebrow:'Transparansi desa',title:'Pembangunan desa',intro:'Kegiatan pembangunan, anggaran, sumber dana, dan progres pelaksanaannya.'},
     bantuan:{eyebrow:'Transparansi desa',title:'Bantuan desa',intro:'Program bantuan sosial, status penyaluran, dan dokumentasinya. Data pribadi penerima tidak ditampilkan.'},

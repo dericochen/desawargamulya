@@ -1,5 +1,5 @@
 // Public Portal Desa pages: tourism, village map, development projects, social aid and global search.
-import React,{useEffect,useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {MapPin,Navigation,Phone,Clock,Ticket,ListChecks,Images,Search,Map as MapIcon,CalendarDays,Wallet,Landmark,HardHat,HeartHandshake,CircleHelp,Newspaper,Building2,ShieldCheck,ChevronLeft,ChevronRight} from 'lucide-react';
 import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs,Slides,PhotoCount,imagesOf,DataBadge} from './lib.jsx';
 import {mapFilters,facilityCategories} from '../server/portal-schema.mjs';
@@ -22,7 +22,7 @@ export function TourismCard({place:t,onDetail}){
     <div className="tourism-body"><div className="tag-row"><span className="tag">{t.category||'Wisata'}</span><DataBadge status={t.data_status}/></div><h3>{t.name}</h3>
       <p className="tourism-address"><MapPin size={16} aria-hidden="true"/>{t.address}</p>
       {t.short_description&&<p className="tourism-summary">{t.short_description}</p>}
-      <div className="card-actions"><button className="button" onClick={()=>onDetail(t)}>Lihat Detail</button><Link className="button secondary" href={'/peta-desa?lokasi='+t.id}><MapIcon/>Lihat di Peta</Link></div>
+      <div className="card-actions"><button className="button" onClick={()=>onDetail(t)}>Lihat Detail</button><Link className="button secondary" href={'/wisata?lokasi='+t.id}><MapIcon/>Lihat di peta</Link></div>
     </div>
   </article>;
 }
@@ -43,7 +43,7 @@ function TourismDetail({place:t,onClose}){
     {!photos.length&&<p className="small muted"><Images size={15} aria-hidden="true"/> Belum ada foto asli destinasi ini. Pengelola dapat menambahkannya dari panel admin.</p>}
     <h3 className="detail-heading">Lokasi</h3>
     <MapView points={[{id:t.id,name:t.name,category:'wisata',address:t.address,lat:t.latitude,lng:t.longitude}]} center={[t.latitude,t.longitude]} zoom={15} focusId={t.id} className="map-small" label={'Peta lokasi '+t.name}/>
-    <div className="form-actions"><a className="button" href={directionsUrl(t.latitude,t.longitude)} target="_blank" rel="noreferrer"><Navigation/>Buka Petunjuk Arah</a><Link className="button secondary" href={'/peta-desa?lokasi='+t.id} onClick={onClose}><MapIcon/>Lihat di Peta Desa</Link></div>
+    <div className="form-actions"><a className="button" href={directionsUrl(t.latitude,t.longitude)} target="_blank" rel="noreferrer"><Navigation/>Buka Petunjuk Arah</a><Link className="button secondary" href={'/wisata?lokasi='+t.id} onClick={onClose}><MapIcon/>Lihat di peta</Link></div>
   </Modal>;
 }
 export function Tourism({data}){
@@ -51,6 +51,7 @@ export function Tourism({data}){
   const tab=['penginapan','pemandu'].includes(param('tab'))?param('tab'):'destinasi';
   const stays=data.portal.stays||[],guides=data.portal.guides||[];
   return <><PageIntro {...data.site.pages.wisata}>{data.site.pages.wisata.intro}</PageIntro>
+    <MapSection data={data}/>
     {tab==='destinasi'&&<DirectoryIntro site={data.site} stays={stays} guides={guides}/>}
     <HubTabs label="Bagian wisata" active={tab} tabs={[['destinasi','Destinasi'],['penginapan','Penginapan warga'],['pemandu','Pemandu lokal']]}/>
     <div id="hub-panel" role="tabpanel" aria-labelledby={'hub-tab-'+tab}>
@@ -58,19 +59,25 @@ export function Tourism({data}){
     </div></>;
 }
 
-export function MapPage({data}){
+// Village map, shown at the top of the Wisata page. Reuses the former Peta Desa logic.
+// ?lokasi=<id> focuses a point and scrolls the map into view (used by cards, detail dialogs and search).
+export function MapSection({data}){
   const all=useMemo(()=>mapPoints(data.portal),[data.portal]);const [filter,setFilter]=useState('semua'),[focus,setFocus]=useState(param('lokasi'));
-  useEffect(()=>{const id=param('lokasi');if(id){setFocus(id);setFilter('semua');}},[location.search]);
+  const ref=useRef();
+  useEffect(()=>{const id=param('lokasi');if(id){setFilter('semua');setFocus('');setTimeout(()=>setFocus(id));ref.current?.scrollIntoView({behavior:'smooth',block:'start'});}},[location.search]);
   const groups=Object.fromEntries(mapFilters.map(([k,,cats])=>[k,cats]));
   const points=filter==='semua'?all:all.filter(p=>groups[filter].includes(p.category));
+  const show=p=>{setFocus('');setTimeout(()=>setFocus(p.id));window.scrollTo({top:document.querySelector('.map-large')?.getBoundingClientRect().top+window.scrollY-90,behavior:'smooth'});};
   const s=data.site;
-  return <><PageIntro {...s.pages['peta-desa']}>{s.pages['peta-desa'].intro}</PageIntro>
+  return <section id="peta" className="map-section" ref={ref} aria-labelledby="peta-title"><h2 id="peta-title" className="section-title">Peta wisata &amp; fasilitas desa</h2>
     <div className="map-filters" role="group" aria-label="Filter kategori lokasi">{mapFilters.map(([k,label,cats])=>{const n=k==='semua'?all.length:all.filter(p=>cats.includes(p.category)).length;return <button key={k} aria-pressed={filter===k} className={filter===k?'active':''} onClick={()=>{setFilter(k);setFocus('');}}>{label}<span>{n}</span></button>;})}</div>
     <MapView points={points} center={[s.villageLat,s.villageLng]} zoom={14} focusId={focus} className="map-large" label={'Peta interaktif '+s.identity}/>
-    <p className="small muted map-hint">Gunakan tombol + / − untuk memperbesar. Pilih kategori atau lokasi di bawah untuk menemukan titik yang dibutuhkan.</p>
-    <section className="location-list" aria-labelledby="daftar-lokasi"><h2 id="daftar-lokasi">Daftar lokasi ({points.length})</h2>
-      {points.length?<ul>{points.map(p=><li key={p.id}><div><span className="map-list-category">{categoryLabel[p.category]||p.category}</span> <DataBadge status={p.status}/><strong>{p.name}</strong><p>{p.address}</p></div><div className="location-actions"><button className="button secondary" onClick={()=>{setFocus('');setTimeout(()=>setFocus(p.id));window.scrollTo({top:document.querySelector('.map-large')?.getBoundingClientRect().top+window.scrollY-90,behavior:'smooth'});}}>Tampilkan di peta</button><a className="button secondary" href={directionsUrl(p.lat,p.lng)} target="_blank" rel="noreferrer"><Navigation/>Petunjuk Arah</a></div></li>)}</ul>:<Empty title="Tidak ada lokasi pada kategori ini"/>}
-    </section></>;
+    <p className="small muted map-hint">Gunakan tombol + / − untuk memperbesar. Pilih kategori atau buka daftar lokasi untuk menemukan titik yang dibutuhkan.</p>
+    <details className="location-details"><summary>Lihat daftar lokasi ({points.length})</summary>
+      <section className="location-list" aria-label="Daftar lokasi">
+      {points.length?<ul>{points.map(p=><li key={p.id}><div><span className="map-list-category">{categoryLabel[p.category]||p.category}</span> <DataBadge status={p.status}/><strong>{p.name}</strong><p>{p.address}</p></div><div className="location-actions"><button className="button secondary" onClick={()=>show(p)}>Tampilkan di peta</button><a className="button secondary" href={directionsUrl(p.lat,p.lng)} target="_blank" rel="noreferrer"><Navigation/>Petunjuk Arah</a></div></li>)}</ul>:<Empty title="Tidak ada lokasi pada kategori ini"/>}
+      </section>
+    </details></section>;
 }
 
 export const projectStatusClass={Direncanakan:'pending',Berjalan:'revision',Selesai:'published',Ditunda:'rejected'};
@@ -160,7 +167,7 @@ export function SearchDialog({data}){
     ['Pembangunan',HardHat,p.projects.filter(x=>has(x.title,x.description,x.location,x.area_name)).map(x=>({id:x.id,title:x.title,text:x.status+' · '+x.year,href:'/transparansi?tab=pembangunan&lihat='+x.id}))],
     ['Bantuan desa',HeartHandshake,p.aid.filter(x=>has(x.name,x.description)).map(x=>({id:x.id,title:x.name,text:x.status+' · '+x.year,href:'/transparansi?tab=bantuan&lihat='+x.id}))],
     ['Pertanyaan umum (FAQ)',CircleHelp,p.faqs.filter(f=>has(f.question,f.answer)).map(f=>({id:f.id,title:f.question,text:f.answer.slice(0,120)+(f.answer.length>120?'…':''),href:'/pengaduan?faq='+f.id}))],
-    ['Fasilitas umum',Building2,p.facilities.filter(f=>has(f.name,f.address,categoryLabel[f.category])).map(f=>({id:f.id,title:f.name,text:categoryLabel[f.category]+' · '+f.address,href:'/peta-desa?lokasi='+f.id}))]
+    ['Fasilitas umum',Building2,p.facilities.filter(f=>has(f.name,f.address,categoryLabel[f.category])).map(f=>({id:f.id,title:f.name,text:categoryLabel[f.category]+' · '+f.address,href:'/wisata?lokasi='+f.id}))]
   ].filter(g=>g[2].length);
   const close=()=>setOpen(false);
   return <Modal title="Cari di website desa" wide onClose={close} className="search-dialog">

@@ -140,6 +140,8 @@ function upgradeSite(site){
   for(const [k,v] of Object.entries(siteSeed))if(site[k]===undefined){site[k]=structuredClone(v);changed=true;}
   for(const k of ['nav','labels','pages'])for(const [key,value] of Object.entries(siteSeed[k]))if(!(key in site[k])){site[k][key]=structuredClone(value);changed=true;}
   if(site.pages?.wisata?.intro==="Pantai dan tempat menarik di Desa Marga Mulya. Informasi tiket dan jam buka ditampilkan jika sudah dikonfirmasi pengelola."){site.pages.wisata.intro=siteSeed.pages.wisata.intro;changed=true;}
+  // Peta Desa merged into Wisata: refresh the Wisata intro only if the admin never changed it from the previous default.
+  if(site.pages?.wisata?.intro==="Jelajahi destinasi pesisir, temukan penginapan warga, dan kenali desa bersama pemandu lokal."){site.pages.wisata.intro=siteSeed.pages.wisata.intro;changed=true;}
   // Design revision 2: the village requested a plain background with Banten cultural ornaments.
   if(revision<2){if(!site.backgroundStyle||site.backgroundStyle==='gelombang')site.backgroundStyle='budaya';site.designRevision=Math.max(site.designRevision||0,2);changed=true;}
   // Revision 4: complete groups B, C and E of the EcoQuest data structure. A group is replaced only while it

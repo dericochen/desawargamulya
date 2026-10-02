@@ -1,29 +1,38 @@
 // Homepage widgets: quick access, Open-Meteo weather card and the gallery carousel with lightbox.
 import React,{useEffect,useRef,useState} from 'react';
-import {Sun,Moon,CloudSun,Cloud,CloudFog,CloudDrizzle,CloudRain,CloudLightning,Droplets,Wind,Megaphone,MessageCircle,TreePalm,HardHat,Map as MapIcon,PhoneCall,ChevronLeft,ChevronRight,Umbrella,Pause,Play} from 'lucide-react';
+import {Sun,Moon,CloudSun,Cloud,CloudFog,CloudDrizzle,CloudRain,CloudLightning,Droplets,Wind,Megaphone,MessageCircle,TreePalm,HardHat,Store,PhoneCall,ChevronLeft,ChevronRight,Umbrella,Pause,Play} from 'lucide-react';
 import {Link,Modal,Picture,Slides,PhotoCount,imagesOf,openAssistant,openEmergency,dateLabel} from './lib.jsx';
 
-// Homepage hero slideshow: crossfade every 6 s, pauses on hover/focus/touch, can be paused by the visitor, honours reduced motion.
+// Homepage hero slideshow: crossfades to the next photo every 2 s. No slide buttons; one small pause/play toggle for accessibility (WCAG 2.2.2).
+// Pauses on hover/focus and during touch (resumes ~3 s after touch ends), honours reduced motion, and waits until the next photo is loaded before switching.
 export function HeroSlider({site:s}){
   const slides=(s.heroSlides?.length?s.heroSlides:[{image:s.heroImage,caption:s.heroCaption}]).filter(x=>x.image);
-  const [warm,setWarm]=useState(false);useEffect(()=>{const t=setTimeout(()=>setWarm(true),2500);return()=>clearTimeout(t);},[]);
-  const [i,setI]=useState(0),[hover,setHover]=useState(false),[stopped,setStopped]=useState(()=>typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
-  useEffect(()=>{if(!warm||stopped||hover||slides.length<2)return;const t=setInterval(()=>{if(document.visibilityState==='visible')setI(n=>(n+1)%slides.length);},6000);return()=>clearInterval(t);},[warm,stopped,hover,slides.length]);
-  const go=n=>setI((n+slides.length)%slides.length);
+  const reduce=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [i,setI]=useState(0),[hover,setHover]=useState(false),[stopped,setStopped]=useState(reduce);
+  // Preload every photo after the first paint so the switch at 2 s never shows a blank image.
+  const [ready,setReady]=useState(()=>new Set([0]));
+  useEffect(()=>{if(slides.length<2)return;let alive=true;const run=()=>{slides.forEach((x,n)=>{if(n===0||!x.image)return;const img=new Image();img.decoding='async';img.onload=img.onerror=()=>{if(alive)setReady(prev=>{const next=new Set(prev);next.add(n);return next;});};img.src=x.image;});};
+    const idle=window.requestIdleCallback?requestIdleCallback(run,{timeout:1500}):setTimeout(run,300);
+    return()=>{alive=false;window.cancelIdleCallback?cancelIdleCallback(idle):clearTimeout(idle);};},[slides.map(x=>x.image).join('|')]);
+  // Pause during a touch, then resume ~3 s after the finger lifts.
+  const touchTimer=useRef();const [touching,setTouching]=useState(false);
+  const onTouchStart=()=>{clearTimeout(touchTimer.current);setTouching(true);};
+  const onTouchEnd=()=>{clearTimeout(touchTimer.current);touchTimer.current=setTimeout(()=>setTouching(false),3000);};
+  useEffect(()=>()=>clearTimeout(touchTimer.current),[]);
+  useEffect(()=>{if(reduce||stopped||hover||touching||slides.length<2)return;const t=setInterval(()=>{if(document.visibilityState!=='visible')return;setI(n=>{const next=(n+1)%slides.length;return ready.has(next)?next:n;});},2000);return()=>clearInterval(t);},[reduce,stopped,hover,touching,slides.length,ready]);
   const buttons=(s.heroButtons||[]).filter(b=>b.label&&b.href);
-  return <section className="hero" aria-roledescription="carousel" aria-label="Foto utama desa" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} onFocus={()=>setHover(true)} onBlur={()=>setHover(false)} onTouchStart={()=>setHover(true)}>
-    {slides.map((x,n)=><div key={n} className={'hero-slide '+(n===i?'active':'')} aria-hidden={n!==i}>{n===0?<Picture src={x.image} alt={x.caption} className="hero-photo"/>:warm&&<img src={x.image} alt={x.caption} className="hero-photo" decoding="async"/>}</div>)}
+  return <section className="hero" aria-roledescription="carousel" aria-label="Foto utama desa" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} onFocus={()=>setHover(true)} onBlur={()=>setHover(false)} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}>
+    {slides.map((x,n)=><div key={n} className={'hero-slide '+(n===i?'active':'')} aria-hidden={n!==i}>{n===0?<Picture src={x.image} alt={x.caption} className="hero-photo"/>:ready.has(n)&&<img src={x.image} alt={x.caption} className="hero-photo" decoding="async"/>}</div>)}
     <div className="hero-shade"/>
+    {slides.length>1&&!reduce&&<button type="button" className="hero-pause" aria-label={stopped?'Putar slide otomatis':'Hentikan slide otomatis'} aria-pressed={!stopped} onClick={()=>setStopped(!stopped)}>{stopped?<Play/>:<Pause/>}</button>}
     <div className="container hero-content"><span className="eyebrow light">{s.identity}</span><h1>{s.heroTitle.split('\n').map((l,n)=><React.Fragment key={n}>{l}<br/></React.Fragment>)}</h1><p>{s.heroText}</p>
       {buttons.length>0&&<div className="hero-actions">{buttons.map((b,n)=><Link key={n} className={'button '+(n===0?'gold':'transparent')} href={b.href}>{b.label}</Link>)}</div>}
       <span className="photo-credit" aria-live="polite">{slides[i]?.caption}</span>
-      {slides.length>1&&<div className="hero-controls"><button type="button" className="hero-control" aria-label="Foto sebelumnya" onClick={()=>go(i-1)}><ChevronLeft/></button><div className="hero-dots">{slides.map((_,n)=><button type="button" key={n} aria-label={`Tampilkan foto ${n+1} dari ${slides.length}`} aria-current={n===i?'true':undefined} onClick={()=>setI(n)}/>)}</div><button type="button" className="hero-control" aria-label="Foto berikutnya" onClick={()=>go(i+1)}><ChevronRight/></button><button type="button" className="hero-control" aria-label={stopped?'Putar slide otomatis':'Hentikan slide otomatis'} onClick={()=>setStopped(!stopped)}>{stopped?<Play/>:<Pause/>}</button></div>}
     </div>
   </section>;
 }
-
 export function QuickAccess({site}){
-  const items=[[Megaphone,'Pengaduan','/pengaduan'],[MessageCircle,'Tanya Desa',openAssistant],[TreePalm,site.nav.wisata||'Wisata','/wisata'],[HardHat,site.nav.pembangunan||'Pembangunan','/transparansi?tab=pembangunan'],[MapIcon,site.nav['peta-desa']||'Peta Desa','/peta-desa'],[PhoneCall,'Darurat',openEmergency]];
+  const items=[[Megaphone,'Pengaduan','/pengaduan'],[MessageCircle,'Tanya Desa',openAssistant],[TreePalm,(site.nav.wisata||'Wisata')+' & Peta','/wisata'],[HardHat,site.nav.pembangunan||'Pembangunan','/transparansi?tab=pembangunan'],[Store,site.nav.lapak||'Lapak Desa','/lapak'],[PhoneCall,'Darurat',openEmergency]];
   return <nav className="container quick-access" aria-label="Akses cepat layanan">{items.map(([Icon,label,to])=>typeof to==='string'
     ?<Link key={label} href={to}><Icon aria-hidden="true"/><span>{label}</span></Link>
     :<button key={label} className={label==='Darurat'?'is-emergency':''} onClick={()=>to()}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>;
@@ -98,16 +107,21 @@ export function CoastalCard({site:s}){
 }
 export function GalleryCarousel({items}){
   const track=useRef(),[paused,setPaused]=useState(false),[index,setIndex]=useState(-1);
-  const scroll=dir=>{const t=track.current;if(!t)return;const atEnd=t.scrollLeft+t.clientWidth>=t.scrollWidth-4;t.scrollBy({left:dir>0&&atEnd?-t.scrollWidth:dir*t.clientWidth*.9,behavior:'smooth'});};
+  const resumeTimer=useRef();
+  // Pause interaction (touch/drag) and resume ~3 s after it ends.
+  const hold=()=>{clearTimeout(resumeTimer.current);setPaused(true);};
+  const release=()=>{clearTimeout(resumeTimer.current);resumeTimer.current=setTimeout(()=>setPaused(false),3000);};
+  useEffect(()=>()=>clearTimeout(resumeTimer.current),[]);
+  // Advance by one item every 2 s, looping back to the start at the end.
   useEffect(()=>{
-    if(paused||items.length<2||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    const timer=setInterval(()=>{if(document.visibilityState==='visible')scroll(1);},6000);return()=>clearInterval(timer);
+    if(paused||items.length<2||(typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches))return;
+    const timer=setInterval(()=>{const t=track.current;if(!t||document.visibilityState!=='visible')return;const first=t.firstElementChild;const step=first?first.getBoundingClientRect().width+16:t.clientWidth*.9;const atEnd=t.scrollLeft+t.clientWidth>=t.scrollWidth-4;t.scrollTo({left:atEnd?0:t.scrollLeft+step,behavior:'smooth'});},2000);
+    return()=>clearInterval(timer);
   },[paused,items.length]);
   if(!items.length)return null;
   const item=items[index];
-  return <div className="carousel" onMouseEnter={()=>setPaused(true)} onMouseLeave={()=>setPaused(false)} onFocus={()=>setPaused(true)} onTouchStart={()=>setPaused(true)} onPointerDown={()=>setPaused(true)}>
+  return <div className="carousel" onMouseEnter={()=>setPaused(true)} onMouseLeave={()=>setPaused(false)} onFocus={()=>setPaused(true)} onBlur={release} onTouchStart={hold} onTouchEnd={release} onTouchCancel={release} onPointerDown={hold} onPointerUp={release}>
     <div className="carousel-track" ref={track} tabIndex={0} role="region" aria-label="Galeri desa, geser untuk melihat foto lain">{items.map((g,i)=><button key={g.id} className="carousel-item" onClick={()=>setIndex(i)}><Picture src={g.image} alt={g.description||g.title}/><PhotoCount n={imagesOf(g).length}/><span className="carousel-caption"><small>{g.category}</small>{g.title}</span></button>)}</div>
-    <div className="carousel-controls"><button className="icon-button" aria-label="Foto sebelumnya" onClick={()=>{setPaused(true);scroll(-1);}}><ChevronLeft/></button><button className="icon-button" aria-label="Foto berikutnya" onClick={()=>{setPaused(true);scroll(1);}}><ChevronRight/></button></div>
     {item&&<Modal title={item.title} wide onClose={()=>setIndex(-1)}><Slides className="gallery-full" images={imagesOf(item)} alt={item.description||item.title}/><p className="gallery-caption">{item.description}</p><p className="credit">{item.category}{item.date&&' · '+dateLabel(item.date)}{item.imageCredit&&' · '+item.imageCredit}</p>
       {items.length>1&&<div className="form-actions lightbox-nav"><button className="button secondary" onClick={()=>setIndex((index-1+items.length)%items.length)}><ChevronLeft/>Sebelumnya</button><span className="small muted">{index+1} / {items.length}</span><button className="button secondary" onClick={()=>setIndex((index+1)%items.length)}>Berikutnya<ChevronRight/></button></div>}</Modal>}
   </div>;
