@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {contactLinks,filterServices,validCoordinates} from '../src/tourism-utils.js';
+import {contactLinks,filterServices,validCoordinates} from '../../src/utils/tourism-utils.js';
 const service={name:'Rumah & Pesisir',capacity:6,price:150000,phone:'081234567890',data_status:'terverifikasi',availability:'inquiry',rate_unit:'per kelompok'};
 const textOf=url=>decodeURIComponent(new URL(url).searchParams.get('text'));
 test('contactLinks withholds WhatsApp for demo data and invalid or empty numbers',()=>{

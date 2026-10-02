@@ -1,8 +1,8 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {facilityCategories} from '../server/portal-schema.mjs';
+import {facilityCategories} from '../../shared/schema.mjs';
 import {directionsUrl,dataStatusInfo} from './lib.jsx';
-import {validCoordinates} from './tourism-utils.js';
-import {loadGoogleMaps,MAP_AUTH_EVENT,googleAuthFailed} from './map-loader.js';
+import {validCoordinates} from '../utils/tourism-utils.js';
+import {loadGoogleMaps,MAP_AUTH_EVENT,googleAuthFailed} from '../utils/map-loader.js';
 
 const apiKey=import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const mapId=import.meta.env.VITE_GOOGLE_MAPS_MAP_ID||'DEMO_MAP_ID';

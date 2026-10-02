@@ -3,7 +3,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Send,Phone,Siren,ShieldAlert,HeartPulse,Flame,Landmark,PhoneCall,UserRound,ArrowLeft,Bot} from 'lucide-react';
 import {Modal,Field,Notice,api,navigate,openEmergency,telHref,timeLabel} from './lib.jsx';
-import {chatCategories} from '../server/portal-schema.mjs';
+import {chatCategories} from '../../shared/schema.mjs';
 
 const TOKEN_KEY='mm_chat_token';
 const keycap=n=>n>=0&&n<=9?n+'\uFE0F\u20E3':n===10?'🔟':n+'.';

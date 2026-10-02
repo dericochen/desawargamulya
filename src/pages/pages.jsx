@@ -1,9 +1,9 @@
-import {EventSignup,TrackRegistration} from './event-registration.jsx';
+import {EventSignup,TrackRegistration} from '../components/event-registration.jsx';
 import React,{useState,useEffect}from'react';
 import{CalendarDays,Store,Landmark,MapPin,Clock,ChevronRight,ChevronLeft,Search,Plus,Phone,Mail,Check,Info,Users,ExternalLink,Clipboard,CheckCircle,SlidersHorizontal}from'lucide-react';
-import{Link,Picture,dateLabel,money,Modal,PageIntro,Field,ImageField,Notice,Empty,api,today,statusLabel,navigate,MapView,mapPoints,WhenVisible,directionsUrl,HubTabs,param,Slides,MultiImageField,PhotoCount,imagesOf,CountUp}from'./lib.jsx';
-import{QuickAccess,Weather,GalleryCarousel,HeroSlider}from'./home-widgets.jsx';
-import{homeSectionKeys}from'../server/portal-schema.mjs';
+import{Link,Picture,dateLabel,money,Modal,PageIntro,Field,ImageField,Notice,Empty,api,today,statusLabel,navigate,MapView,mapPoints,WhenVisible,directionsUrl,HubTabs,param,Slides,MultiImageField,PhotoCount,imagesOf,CountUp}from'../components/lib.jsx';
+import{QuickAccess,Weather,GalleryCarousel,HeroSlider}from'../components/home-widgets.jsx';
+import{homeSectionKeys}from'../../shared/schema.mjs';
 const homeDefaults=homeSectionKeys.map(key=>({key,visible:true}));
 import{Tourism,TourismCard,Transparency,ProjectCard}from'./portal-pages.jsx';
 import{HelpCenter}from'./services.jsx';

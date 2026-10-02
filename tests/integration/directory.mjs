@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 export async function checkDirectory(t,request){
- const photo='data:image/webp;base64,'+fs.readFileSync(new URL('../public/images/rice.webp',import.meta.url)).toString('base64');
+ const photo='data:image/webp;base64,'+fs.readFileSync(new URL('../../public/images/rice.webp',import.meta.url)).toString('base64');
  const base={name:'Penginapan Uji',short_description:'Rumah warga untuk pengujian',area:'Kawasan uji',capacity:4,bedrooms:2,price:250000,phone:'081234567890',data_status:'perlu_verifikasi',owner_name:'Pak Uji',address:'Jalan Uji No. 1, RT 003 RW 002'};
  let stay,guide;
  await t.test('Directory demo is labelled, contacts and private coordinates are withheld',async()=>{

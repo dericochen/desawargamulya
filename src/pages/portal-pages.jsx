@@ -1,10 +1,10 @@
 // Public Portal Desa pages: tourism, village map, development projects, social aid and global search.
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {MapPin,Navigation,Phone,Clock,Ticket,ListChecks,Images,Search,Map as MapIcon,CalendarDays,Wallet,Landmark,HardHat,HeartHandshake,CircleHelp,Newspaper,Building2,ShieldCheck,ChevronLeft,ChevronRight} from 'lucide-react';
-import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs,Slides,PhotoCount,imagesOf,DataBadge} from './lib.jsx';
-import {mapFilters,facilityCategories} from '../server/portal-schema.mjs';
+import {Link,Modal,PageIntro,Empty,Notice,Busy,api,money,dateLabel,MapView,mapPoints,Photo,Picture,Progress,Unknown,directionsUrl,telHref,numberLabel,param,navigate,HubTabs,Slides,PhotoCount,imagesOf,DataBadge} from '../components/lib.jsx';
+import {mapFilters,facilityCategories} from '../../shared/schema.mjs';
 
-import TourismDirectory,{DirectoryIntro} from './tourism-directory.jsx';
+import TourismDirectory,{DirectoryIntro} from '../components/tourism-directory.jsx';
 
 const categoryLabel=Object.fromEntries(facilityCategories.map(([k,l,e])=>[k,e+' '+l]));
 // Keeps a detail dialog in sync with ?lihat= so detail views can be shared and the back button closes them.

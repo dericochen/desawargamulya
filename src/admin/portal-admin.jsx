@@ -2,9 +2,9 @@
 // complaint handling, citizen message inbox and the dashboard summary.
 import React,{useEffect,useMemo,useState} from 'react';
 import {Plus,Pencil,Trash2,ArrowUp,ArrowDown,Search,RefreshCw,Save,Send,Eye,EyeOff,Upload,MessageSquare,Megaphone,CheckCircle,ChevronLeft} from 'lucide-react';
-import {api,Field,ImageField,Modal,Notice,Empty,Busy,Picture,dateLabel,timeLabel,money,numberLabel,MultiImageField,imagesOf} from './lib.jsx';
-import {tables,complaintStatuses,chatCategories,facilityCategories,MAX_IMAGES} from '../server/portal-schema.mjs';
-import {complaintLabel,complaintClass} from './services.jsx';
+import {api,Field,ImageField,Modal,Notice,Empty,Busy,Picture,dateLabel,timeLabel,money,numberLabel,MultiImageField,imagesOf} from '../components/lib.jsx';
+import {tables,complaintStatuses,chatCategories,facilityCategories,MAX_IMAGES} from '../../shared/schema.mjs';
+import {complaintLabel,complaintClass} from '../pages/services.jsx';
 
 const opts=f=>f.options.map(o=>Array.isArray(o)?o:[o,o]);
 const defaults=(table,extra={})=>{const out={};for(const [k,f] of Object.entries(tables[table].fields)){if(f.type==='slug')continue;out[k]=f.def??(f.type==='bool'?1:f.type==='enum'?opts(f)[0][0]:f.type==='int'||f.type==='bigint'?0:f.type==='ref'?null:'');}return {...out,...extra};};

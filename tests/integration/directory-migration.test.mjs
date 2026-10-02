@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-const testRoot=fileURLToPath(new URL('../.test-data/',import.meta.url));
+const testRoot=fileURLToPath(new URL('../../.test-data/',import.meta.url));
 fs.mkdirSync(testRoot,{recursive:true});
 const dir=fs.mkdtempSync(path.join(testRoot,'directory-migration-'));
 process.env.DATA_DIR=dir;process.env.ADMIN_EMAIL='migration@example.invalid';process.env.ADMIN_PASSWORD='Temporary-test-password-8231';
 delete process.env.DATABASE_URL;delete process.env.VERCEL;
 test('Directory migration preserves edits and deletions across restarts and schema upgrades',async()=>{
- const {init,query,close}=await import('../server/db.mjs');
+ const {init,query,close}=await import('../../database/db.mjs');
  try{
   await init();assert.equal((await query('SELECT id FROM tourism_stays')).length,2);
   await query("UPDATE tourism_stays SET name='Judul dari admin',price=400000 WHERE id='contoh-rumah-pesisir'");

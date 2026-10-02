@@ -1,8 +1,8 @@
 // Portal Digital Desa API: generic admin CRUD for schema tables, public portal data,
 // complaints with TIK-xxx tickets, and token-based citizen ↔ admin chat.
 import {randomBytes,randomUUID,randomInt} from 'node:crypto';
-import {query,transaction,hash} from './db.mjs';
-import {tables,complaintCategories,complaintStatuses,chatCategories,ticketLabel,MAX_IMAGES} from './portal-schema.mjs';
+import {query,transaction,hash} from '../../database/db.mjs';
+import {tables,complaintCategories,complaintStatuses,chatCategories,ticketLabel,MAX_IMAGES} from '../../shared/schema.mjs';
 
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const now=()=>new Date().toISOString();

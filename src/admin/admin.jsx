@@ -1,10 +1,10 @@
 import RegistrationAdmin from './registration-admin.jsx';
-import {EnrollmentSettings} from './event-registration.jsx';
+import {EnrollmentSettings} from '../components/event-registration.jsx';
 import {TableManager,ComplaintsAdmin,Inbox,PortalDashboard} from './portal-admin.jsx';
 import React,{useEffect,useState}from'react';
 import{LayoutDashboard,Newspaper,CalendarDays,Store,Images,Settings,LogOut,ExternalLink,Plus,Search,Pencil,Trash2,ShieldCheck,KeyRound,Save,FileText,Menu,X,Landmark,MapPinned,BarChart3,Megaphone,CircleHelp,Bot,MessageSquare,TreePalm,Building2,HardHat,HeartHandshake,PhoneCall,Eye,EyeOff,LayoutTemplate,ArrowUp,ArrowDown}from'lucide-react';
-import{api,Link,Busy,Notice,Field,ImageField,MultiImageField,BrandMark,imagesOf,Modal,Picture,Empty,dateLabel,today,statusLabel}from'./lib.jsx';
-import{homeSectionKeys,homeSectionLabels}from'../server/portal-schema.mjs';
+import{api,Link,Busy,Notice,Field,ImageField,MultiImageField,BrandMark,imagesOf,Modal,Picture,Empty,dateLabel,today,statusLabel}from'../components/lib.jsx';
+import{homeSectionKeys,homeSectionLabels}from'../../shared/schema.mjs';
 // Grouped admin menu. Keys map to record kinds (article/event/…), portal tables, or special screens.
 const menu=[
  [null,[['dashboard','Dashboard',LayoutDashboard]]],

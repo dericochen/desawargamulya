@@ -8,14 +8,14 @@ import {checkRegistrations} from './registrations.mjs';
 import {checkDirectory} from './directory.mjs';
 import {checkPortal} from './portal.mjs';
 
-const testRoot=fileURLToPath(new URL('../.test-data/',import.meta.url));
+const testRoot=fileURLToPath(new URL('../../.test-data/',import.meta.url));
 fs.mkdirSync(testRoot,{recursive:true});
 process.env.DATA_DIR=fs.mkdtempSync(path.join(testRoot,'run-'));
 process.env.ADMIN_EMAIL='test-admin@example.invalid';
 process.env.ADMIN_PASSWORD=randomBytes(24).toString('hex');
 delete process.env.DATABASE_URL;
 delete process.env.VERCEL;
-const {default:app}=await import('../server/app.mjs');
+const {default:app}=await import('../../server/app.mjs');
 const server=app.listen(0,'127.0.0.1');
 await new Promise(resolve=>server.once('listening',resolve));
 const base='http://127.0.0.1:'+server.address().port;
@@ -38,7 +38,7 @@ test('Public content, moderation, image privacy and CMS persistence',async t=>{
    assert.match(r.headers.get('set-cookie'),/HttpOnly/);assert.match(r.headers.get('set-cookie'),/SameSite=Strict/);cookie=r.headers.get('set-cookie').split(';')[0];
   });
   let submission,record;
-  const product={title:'Produk uji persetujuan',category:'Pangan',description:'Produk untuk memeriksa seluruh alur moderasi.',unit:'paket',seller:'Penjual uji',area:'Dusun uji',phone:'081234567890',price:12000,consent:true,availability:'Tersedia',image:'data:image/webp;base64,'+fs.readFileSync(new URL('../public/images/rice.webp',import.meta.url)).toString('base64')};
+  const product={title:'Produk uji persetujuan',category:'Pangan',description:'Produk untuk memeriksa seluruh alur moderasi.',unit:'paket',seller:'Penjual uji',area:'Dusun uji',phone:'081234567890',price:12000,consent:true,availability:'Tersedia',image:'data:image/webp;base64,'+fs.readFileSync(new URL('../../public/images/rice.webp',import.meta.url)).toString('base64')};
   await t.test('Submission ignores publication attempts and stays private',async()=>{
    const r=await request('/submissions',{method:'POST',body:{...product,status:'published',featured:true}});assert.equal(r.status,201);submission=r.data;assert.equal(submission.status,'pending');
    const items=await request('/admin/content',{admin:true});record=items.data.find(x=>x.id===submission.id);assert.equal(record.status,'pending');assert.equal(record.featured,false);assert.match(record.image,/^\/api\/media\//);
@@ -94,7 +94,7 @@ test('Public content, moderation, image privacy and CMS persistence',async t=>{
   });
  }finally{
   await new Promise(resolve=>server.close(resolve));
-  const {close}=await import('../server/db.mjs');close();
+  const {close}=await import('../../database/db.mjs');close();
   fs.rmSync(process.env.DATA_DIR,{recursive:true,force:true});
  }
 });

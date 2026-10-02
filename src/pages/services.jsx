@@ -1,8 +1,8 @@
 // Layanan warga: FAQ first, then complaint form (TIK-xxx ticket) and ticket tracking.
 import React,{useEffect,useState,useRef} from 'react';
 import {Megaphone,SearchCheck,MessageCircle,PhoneCall,CheckCircle,Clipboard,ChevronDown,ShieldCheck,ArrowLeft,Search} from 'lucide-react';
-import {Link,Field,MultiImageField,Notice,Empty,PageIntro,api,dateLabel,param,navigate,openAssistant,openEmergency} from './lib.jsx';
-import {complaintCategories,complaintStatuses} from '../server/portal-schema.mjs';
+import {Link,Field,MultiImageField,Notice,Empty,PageIntro,api,dateLabel,param,navigate,openAssistant,openEmergency} from '../components/lib.jsx';
+import {complaintCategories,complaintStatuses} from '../../shared/schema.mjs';
 
 // Dates of complaint updates in the village time zone (stored timestamps are UTC).
 const localDate=iso=>new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Jakarta'}).format(new Date(iso));

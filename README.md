@@ -19,6 +19,45 @@ npm start
 
 Buka http://localhost:4173 untuk pengunjung dan http://localhost:4173/admin untuk admin. Pada pemakaian lokal pertama, sistem membuat akun admin dengan kata sandi acak dan menuliskannya dalam `AKSES-ADMIN-LOKAL.txt`. File ini bersifat privat, tidak termasuk paket sumber atau deployment. Kata sandi bisa diganti melalui menu Akun admin. Database lokal berada di `data/village.sqlite`; simpan folder data jika memindahkan instalasi lokal.
 
+## Struktur folder
+
+```
+api/                  Entry serverless Vercel (import ../server/app.mjs)
+server/               Backend Express
+  app.mjs             Aplikasi Express (dipakai api/ dan server lokal)
+  start.mjs           Entry server lokal (dev)
+  preview.mjs         Entry server lokal (production preview)
+  routes/             Rute API (portal.mjs, registrations.mjs)
+  lib/                Util backend (image-meta.mjs)
+database/             Database: koneksi, migrasi, data awal
+  db.mjs              Koneksi, migrasi, dan util query
+  seeds/              Data awal (site-seed, portal-seed, directory-seed)
+shared/               Kode yang dipakai frontend dan backend
+  schema.mjs          Definisi tabel + validasi (aman diimpor di browser)
+src/                  Frontend React
+  main.jsx            Entry aplikasi (dirujuk index.html)
+  pages/              Halaman (pages.jsx, portal-pages.jsx, services.jsx)
+  components/         Komponen UI bersama (lib, home-widgets, map, dll.)
+  admin/              Panel admin (admin, portal-admin, registration-admin)
+  utils/              Util murni (map-loader.js, tourism-utils.js)
+  styles/             Gaya (style.css)
+tests/                Pengujian
+  integration/        Uji integrasi API + migrasi
+  unit/               Uji unit (tourism-utils, map-loader, peta-merge)
+public/               Aset statis dan gambar (tetap di root)
+index.html            Dokumen HTML utama (tetap di root)
+vite.config.js        Konfigurasi Vite (tetap di root)
+vercel.json           Konfigurasi Vercel (tetap di root)
+package.json          Skrip dan dependensi (tetap di root)
+```
+
+- **api/**: titik masuk fungsi serverless Vercel; mengimpor aplikasi Express dari `server/`.
+- **server/**: backend Express — aplikasi, entry lokal, rute API, dan util sisi server.
+- **database/**: koneksi database, migrasi otomatis, dan data awal (seeds).
+- **shared/**: modul murni yang dipakai bersama frontend dan backend (definisi tabel + validasi).
+- **src/**: frontend React, dipisah menjadi halaman, komponen, panel admin, util, dan gaya.
+- **tests/**: pengujian, dibagi menjadi integrasi (API) dan unit.
+
 ## Halaman dan fitur
 
 | Halaman | Fungsi |
@@ -39,7 +78,7 @@ Tombol **Darurat** (header, akses cepat, footer) membuka lembar nomor 112/110/11
 
 ## Portal Digital Desa — cara kerja
 
-- **Data dinamis.** Wisata, fasilitas, galeri, FAQ, menu chatbot, nomor darurat, pengaduan, pesan, pembangunan, bantuan, dokumentasi, dusun dan RT/RW tersimpan di database dan dikelola dari admin. Tabel baru dibuat otomatis (`CREATE TABLE IF NOT EXISTS`) tanpa menghapus data lama; definisinya ada di `server/portal-schema.mjs`.
+- **Data dinamis.** Wisata, fasilitas, galeri, FAQ, menu chatbot, nomor darurat, pengaduan, pesan, pembangunan, bantuan, dokumentasi, dusun dan RT/RW tersimpan di database dan dikelola dari admin. Tabel baru dibuat otomatis (`CREATE TABLE IF NOT EXISTS`) tanpa menghapus data lama; definisinya ada di `shared/schema.mjs`.
 - **Pengaduan.** Nomor tiket `TIK-001`, `TIK-002`, … berasal dari penghitung database (tidak dipakai ulang). Halaman cek tiket hanya menampilkan kategori, dusun, status dan catatan petugas; nama, nomor, isi dan foto hanya untuk admin. Admin mengubah status BARU → DIVERIFIKASI → DIPROSES → SELESAI/DITOLAK beserta catatan.
 - **Asisten Desa.** Bot menu angka (bukan AI) yang dibaca dari tabel `chatbot_nodes`/`chatbot_options`. Pilihan dapat membuka menu lain, formulir pengaduan berkategori, cek tiket, FAQ, halaman website, nomor darurat, atau menghubungkan ke admin.
 - **Pesan Warga.** Warga yang dihubungkan ke admin mendapat kode rahasia di perangkatnya; admin membalas di inbox (status belum dibaca, selesai/buka kembali, kategori). Pembaruan memakai polling ringan tiap 5–6 detik karena stack ini tidak memiliki layanan realtime; tidak ada teknologi baru yang ditambahkan.

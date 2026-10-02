@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,scryptSync,timingSafeEqual,createHash} from 'node:crypto';
-import {seedRecords,siteSeed} from './seed.mjs';
-import {portalDDL,SCHEMA_VERSION,extraImageColumns,homeSectionKeys,legacyHomeOrder} from './portal-schema.mjs';
-import {portalSeed,approxNote,officialSchools,emergency112} from './portal-seed.mjs';
-import {directorySeed} from './directory-seed.mjs';
+import {seedRecords,siteSeed} from './seeds/site-seed.mjs';
+import {portalDDL,SCHEMA_VERSION,extraImageColumns,homeSectionKeys,legacyHomeOrder} from '../shared/schema.mjs';
+import {portalSeed,approxNote,officialSchools,emergency112} from './seeds/portal-seed.mjs';
+import {directorySeed} from './seeds/directory-seed.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 let queryFn; let transactionFn; let ready; let closeFn=()=>{};
 // Releases the local SQLite file handle (used by tests so the temp folder can be deleted on Windows).

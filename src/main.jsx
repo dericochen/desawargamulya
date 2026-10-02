@@ -1,11 +1,11 @@
 import React,{useEffect,useRef,useState} from 'react';import{createRoot}from'react-dom/client';
 import{Menu,X,MapPin,Mail,Phone,ShieldCheck,Clock,ChevronDown,Search,PhoneCall}from'lucide-react';
-import{api,Link,useRoute,Busy,Notice,Modal,BrandMark,useReveal,openEmergency,openAssistant,openSearch,isActiveHref}from'./lib.jsx';
-import{SearchDialog}from'./portal-pages.jsx';
-import PublicPages,{Home}from'./pages.jsx';
-import{Assistant,EmergencySheet}from'./assistant.jsx';
-const Admin=React.lazy(()=>import('./admin.jsx'));
-import './style.css';
+import{api,Link,useRoute,Busy,Notice,Modal,BrandMark,useReveal,openEmergency,openAssistant,openSearch,isActiveHref}from'./components/lib.jsx';
+import{SearchDialog}from'./pages/portal-pages.jsx';
+import PublicPages,{Home}from'./pages/pages.jsx';
+import{Assistant,EmergencySheet}from'./components/assistant.jsx';
+const Admin=React.lazy(()=>import('./admin/admin.jsx'));
+import './styles/style.css';
 
 // Menu structure; labels come from the CMS (site.nav) so admins can rename items.
 // Exactly 9 public pages: /, /profil, /informasi, /galeri, /lapak, /wisata, /pengaduan, /transparansi, /kontak.

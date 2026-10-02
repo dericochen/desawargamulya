@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-const fresh=()=>import('../src/map-loader.js?test='+Math.random());
+const fresh=()=>import('../../src/utils/map-loader.js?test='+Math.random());
 function environment(){
  const events=[],scripts=[];
  const win={dispatchEvent:e=>events.push(e.type)};

@@ -1,6 +1,6 @@
 import React,{useEffect,useRef,useState,useId} from 'react';
 import {X,ImageOff,LoaderCircle,ChevronLeft,ChevronRight,ImagePlus,Trash2,Images} from 'lucide-react';
-import {validCoordinates,serviceHref} from './tourism-utils.js';
+import {validCoordinates,serviceHref} from '../utils/tourism-utils.js';
 export async function api(path,options={}){
   const response=await fetch('/api'+path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...options,body:options.body?JSON.stringify(options.body):undefined});
   const value=await response.json();if(!response.ok)throw new Error(value.error||'Permintaan gagal.');return value;

@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {Search,Users,Store,RefreshCw,ShieldCheck} from 'lucide-react';
-import {api,Field,Modal,Notice,Empty,Busy,dateLabel} from './lib.jsx';
-import {registrationLabels,registrationModes} from './event-registration.jsx';
+import {api,Field,Modal,Notice,Empty,Busy,dateLabel} from '../components/lib.jsx';
+import {registrationLabels,registrationModes} from '../components/event-registration.jsx';
 
 function Review({record,event,products,onClose,onSaved}){
   const [status,setStatus]=useState(record.status),[note,setNote]=useState(record.note),[productId,setProductId]=useState(record.productId),[attended,setAttended]=useState(record.attended),[error,setError]=useState(''),[busy,setBusy]=useState(false);

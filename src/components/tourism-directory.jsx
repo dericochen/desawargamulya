@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 import {House,Compass,Users,MapPin,ArrowUpRight,Search,MessageCircle,Clock,Check,Languages,UserRound} from 'lucide-react';
 import {Modal,Slides,Picture,DataBadge,Field,MultiImageField,Notice,Empty,Link,MapView,money,dateLabel,imagesOf,directionsUrl,navigate,api} from './lib.jsx';
-import {contactLinks,filterServices,validCoordinates,serviceTab,serviceHref} from './tourism-utils.js';
+import {contactLinks,filterServices,validCoordinates,serviceTab,serviceHref} from '../utils/tourism-utils.js';
 const lines=s=>(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
 const rateLabel=(kind,item)=>kind==='stay'?'per malam / unit':item.rate_unit+(item.duration_hours?` · ${item.duration_hours} jam`:'');
 function Rate({kind,item}){return <div className="service-rate"><span>{item.price===null?'Tarif':'Mulai dari'}</span><strong>{item.price===null?'Tanyakan penyedia':money(item.price)}</strong>{item.price!==null&&<small>{rateLabel(kind,item)}</small>}</div>;}

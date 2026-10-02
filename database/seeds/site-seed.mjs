@@ -21,7 +21,7 @@ function dataSections(){return [
   {code:'L',title:'Organisasi & kegiatan rutin',chart:'table',note:'Jadwal kegiatan dapat dilihat pada Agenda.',link:'/informasi?tab=agenda',rows:[row('Karang Taruna',1,'organisasi'),row('PKK',1,'organisasi'),row('Kelompok nelayan',4,'kelompok'),row('Kerja bakti lingkungan','Bulanan'),row('Posyandu balita & lansia','Bulanan')]},
   {code:'M',title:'UMKM & produk lokal',chart:'table',note:'Produk warga ditampilkan di Lapak Desa setelah ditinjau admin.',link:'/lapak',rows:[row('Olahan hasil laut (ikan asin, terasi, kerupuk)',14,'usaha'),row('Makanan & minuman',12,'usaha'),row('Kerajinan',6,'usaha'),row('Jasa',4,'usaha')]}
 ];}
-import {homeSectionKeys} from './portal-schema.mjs';
+import {homeSectionKeys} from '../../shared/schema.mjs';
 export {homeSectionKeys};
 export const siteSeed = {
   tourismServiceTitle:'Singgah lebih lama, kenal warga lebih dekat.',

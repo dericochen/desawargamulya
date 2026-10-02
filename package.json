@@ -7,7 +7,7 @@
     "dev": "node --env-file-if-exists=.env server/start.mjs",
     "build": "vite build --configLoader native",
     "start": "node --env-file-if-exists=.env server/preview.mjs",
-    "check": "node --test tests/api.test.mjs tests/tourism-utils.test.mjs tests/map-loader.test.mjs tests/directory-migration.test.mjs tests/peta-merge.test.mjs"
+    "check": "node --test tests/integration/api.test.mjs tests/integration/directory-migration.test.mjs tests/unit/*.test.mjs"
   },
   "engines": {
     "node": "24.x"

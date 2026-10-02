@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const photo='data:image/webp;base64,'+fs.readFileSync(new URL('../public/images/rice.webp',import.meta.url)).toString('base64');
+const photo='data:image/webp;base64,'+fs.readFileSync(new URL('../../public/images/rice.webp',import.meta.url)).toString('base64');
 const citizen={name:'Warga Uji',phone:'081234567890',village_area_id:'dusun-1',rt:'1',rw:'2',category:'Jalan Rusak',title:'Jalan berlubang di depan sekolah',body:'Lubang besar membahayakan pengendara motor pada malam hari.',location:'Depan SDN Margamulya',consent:true};
 
 export async function checkPortal(t,request){
@@ -190,8 +190,8 @@ export async function checkPortal(t,request){
     assert.equal((await request(old.slice(4),{admin:true})).status,404,'removed hero slide photo is deleted');
   });
   await t.test('Uploaded photos lose EXIF/GPS metadata on the server',async()=>{
-    const {stripMetadata}=await import('../server/image-meta.mjs');
-    const jpg=fs.readFileSync(new URL('../public/images/kantor-desa-marga-mulya.jpg',import.meta.url));
+    const {stripMetadata}=await import('../../server/lib/image-meta.mjs');
+    const jpg=fs.readFileSync(new URL('../../public/images/kantor-desa-marga-mulya.jpg',import.meta.url));
     const exif=Buffer.concat([Buffer.from([0xFF,0xE1,0x00,0x18]),Buffer.from('Exif\0\0GPS-LOKASI-RUMAH')]);
     const tagged=Buffer.concat([jpg.subarray(0,2),exif,jpg.subarray(2)]);
     assert.ok(tagged.includes('GPS-LOKASI-RUMAH'));
@@ -202,7 +202,7 @@ export async function checkPortal(t,request){
     // PNG text chunk and WebP EXIF chunk are removed too.
     const png=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.from('0000000474455874','hex'),Buffer.from('GPS!'),Buffer.alloc(4),Buffer.from('0000000049454e44ae426082','hex')]);
     assert.equal(stripMetadata(png,'image/png').includes('GPS!'),false);
-    const webp=fs.readFileSync(new URL('../public/images/rice.webp',import.meta.url)),extra=Buffer.concat([Buffer.from('EXIF'),Buffer.from([8,0,0,0]),Buffer.from('GPSWEBP!')]);
+    const webp=fs.readFileSync(new URL('../../public/images/rice.webp',import.meta.url)),extra=Buffer.concat([Buffer.from('EXIF'),Buffer.from([8,0,0,0]),Buffer.from('GPSWEBP!')]);
     const w=Buffer.concat([webp,extra]);w.writeUInt32LE(w.length-8,4);
     const sw=stripMetadata(w,'image/webp');assert.equal(sw.includes('GPSWEBP!'),false);assert.equal(sw.readUInt32LE(4),sw.length-8);assert.equal(sw.length,webp.length);
   });

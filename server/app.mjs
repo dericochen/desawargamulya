@@ -1,10 +1,10 @@
 import express from 'express';
 import {randomBytes,randomUUID} from 'node:crypto';
-import {query,transaction,getRecord,putRecord,parseRow,hash,verifyPassword,hashPassword} from './db.mjs';
-import {validateEnrollment,saveEvent,publicEnrollment,mountRegistrations,refreshEventTimes} from './registrations.mjs';
-import {mountPortal,portalMediaVisible,pruneMedia,imageList} from './portal.mjs';
-import {homeSectionKeys} from './seed.mjs';
-import {stripMetadata} from './image-meta.mjs';
+import {query,transaction,getRecord,putRecord,parseRow,hash,verifyPassword,hashPassword} from '../database/db.mjs';
+import {validateEnrollment,saveEvent,publicEnrollment,mountRegistrations,refreshEventTimes} from './routes/registrations.mjs';
+import {mountPortal,portalMediaVisible,pruneMedia,imageList} from './routes/portal.mjs';
+import {homeSectionKeys} from '../database/seeds/site-seed.mjs';
+import {stripMetadata} from './lib/image-meta.mjs';
 const app=express();
 app.disable('x-powered-by');
 // Up to 3 compressed photos per form (hero slides: 5) fit comfortably below Vercel's 4.5 MB request limit.
